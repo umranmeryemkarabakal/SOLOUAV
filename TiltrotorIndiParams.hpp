@@ -920,6 +920,18 @@ static constexpr float LAND_DONE_ALT = 0.25f;   // m AGL, altinda inis tamamland
 // duserdi, LAND_TOUCH_DWELL suresince metrelerce yol eder.
 static constexpr float LAND_GROUND_THRUST_FRAC = 0.5f;
 static constexpr float LAND_TOUCH_DWELL = 1.5f;  // s, kesintisiz temas suresi
+//
+// ⚠ MODUL ICINDE HENUZ ATESLEMEDI (2026-08-31, iki dogrulama kosumu).
+// Olculdu: DESCEND/FLARE/TOUCHDOWN'un ucunde de dikey itki 47-48 N'de
+// kaldi, esigin (24.5 N) altina HIC inmedi; TOUCHDOWN'a agl < LAND_DONE_ALT
+// yedek kosulundan gecildi. Sebep: TOUCHDOWN 0.25 m'de ilan ediliyor ve
+// disarm ~1.5 s sonra geliyor, yani arac itkinin cokecegi kadar OTURMUYOR.
+// Adim 150'de olculen 5.2/12.3/13.1 N degerleri, motorlar calisirken yerde
+// UZUN SURE oturan kosumlardandi.
+// Bu bir ariza DEGIL -- irtifa dogruyken irtifa yolu zaten once ateslar.
+// Itki yolu, IRTIFANIN YALAN SOYLEDIGI durum icin emniyet agidir (bu
+// oturumda uc kez olculdu: arac yerde, agl 0.64-1.15 m diyordu).
+// AMA 'sinandi' SAYILMAZ; gercek bir olayda calistigi henuz gorulmedi.
 
 // ALCALMA TAKILDI: bu sure boyunca irtifa LAND_STALL_DZ'den az degistiyse
 // profil ilerlemiyordur. Modul KENDI DISARM ETMEZ; yalnizca DESCEND'de
