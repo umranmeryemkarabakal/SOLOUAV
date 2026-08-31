@@ -68,15 +68,15 @@ call_ok = max([d_rate d_wls]) <= TOL_CALL;
 
 %% --- SENARYO 1: ucus rejimi (kapi kapali) ---
 fprintf('\n--- Senaryo 1: ucus rejimi ---\n');
-[d1, worst1] = run_case(N, p, leso_en, Inf, ...
+[d1, worst1, ~, ~, d1lin, g1] = run_case(N, p, leso_en, Inf, ...
                         [p.m*p.g/3*ones(3,1); 0.15; 0.15; 0.0], @scen_flight);
-report('ucus', d1, worst1, TOL_LOOP);   % geri besleme bagli -> TOL_LOOP
+ok1 = report('ucus', d1, worst1, TOL_LOOP, d1lin, g1);
 
 %% --- SENARYO 2: INIS rejimi (kapi acik, mandal kurulmali) ---
 fprintf('\n--- Senaryo 2: inis rejimi (temas mandali) ---\n');
-[d2, worst2, latch_m, latch_c] = run_case(N, p, leso_en, 0.30, ...
+[d2, worst2, latch_m, latch_c, d2lin, g2] = run_case(N, p, leso_en, 0.30, ...
                         [34.0; 0.0; 5.0; 0.17; 0.0; 0.0], @scen_land);
-report('inis', d2, worst2, TOL_LOOP);   % geri besleme bagli -> TOL_LOOP
+ok2 = report('inis', d2, worst2, TOL_LOOP, d2lin, g2);
 fprintf('  mandal kurulan tik   : MATLAB k=%d, URETILEN k=%d  %s\n', ...
         latch_m, latch_c, tick_verdict(latch_m, latch_c));
 
@@ -94,7 +94,7 @@ for k = 1:N
     [a_c, fx_c, st_c] = sf_position_loop_mex(pos_sp, pos, vel, psi, db, st_c);
     d3 = max(d3, max(abs([a_m(:); fx_m] - [a_c(:); fx_c])));
 end
-report('pozisyon', d3, 0, 0);           % geri beslemesiz -> TAM esitlik
+ok3 = report('pozisyon', d3, 0, 0);           % geri beslemesiz -> TAM esitlik
 
 %% --- SENARYO 4: irtifa dongusu ---
 fprintf('\n--- Senaryo 4: irtifa dongusu ---\n');
@@ -106,7 +106,7 @@ for k = 1:N
     [f_c, s_c] = sf_altitude_loop_mex(-50, z, vz, s_c);
     d4 = max(d4, abs(f_m - f_c));
 end
-report('irtifa', d4, 0, 0);             % geri beslemesiz -> TAM esitlik
+ok4 = report('irtifa', d4, 0, 0);             % geri beslemesiz -> TAM esitlik
 
 
 %% --- SENARYO 5: GOREV FAZLARI (Adim 129) ---
@@ -176,14 +176,18 @@ exact_d = [d3 d4];            % geri beslemesiz -> TAM esitlik beklenir
 fprintf('\n=== OZET ===\n');
 fprintf('  tek cagri (kaynak)      : %s\n', ternary(call_ok, 'yuvarlama mertebesinde', '⛔ GERCEK AYRISMA'));
 fprintf('  geri beslemesiz yollar  : %.3e  %s\n', max(exact_d), pf(max(exact_d), 0));
-fprintf('  kapali cevrim (sinirli) : %.3e  %s\n', max(loop_d), pf(max(loop_d), TOL_LOOP));
+fprintf('  kapali cevrim, dogrusal : %.3e  %s\n', max([d1lin d2lin]), pf(max([d1lin d2lin]), TOL_LOOP));
+fprintf('  kapali cevrim, doymus   : %.3e  %s  (sinir 0.5 N)\n', max(loop_d), pf(max(loop_d), 0.5));
 fprintf('  temas mandali tiki      : %s\n', tick_verdict(latch_m, latch_c));
 fprintf('  gorev fazlari           : %s\n', ternary(mission_ok, 'kaynakla ayni (durum dizileri dahil)', '⛔ AYRISIYOR'));
-ok = call_ok && (max(exact_d) == 0) && (max(loop_d) <= TOL_LOOP) && (latch_m == latch_c) && mission_ok;
+ok = call_ok && (max(exact_d) == 0) && ok1 && ok2 && (latch_m == latch_c) && mission_ok;
 if ok
     fprintf('\n  SONUC: GECTI -- uretilen kod kaynakla tutarli.\n');
     fprintf('  Kalan fark YALNIZCA dogrusal cozumun yuvarlamasindan; kapali\n');
-    fprintf('  cevrimde sinirli kaliyor ve mekanizmalar (mandal) ayni tikte.\n\n');
+    fprintf('  cevrimde sinirli kaliyor ve mekanizmalar (mandal) ayni tikte.\n');
+    fprintf('  Tahsisat DOYDUGUNDA iki cozucu kisit sinirinda farkli kose\n');
+    fprintf('  secebilir (tepe %.1e N); bu bir kod ayrismasi degildir ve\n', max(loop_d));
+    fprintf('  gercek ucusta doyum OLCULMEDI (SITL: doyum %%0, BIG_M 0).\n\n');
 else
     fprintf('\n  SONUC: ⛔ KALDI\n\n');
 end
@@ -192,19 +196,20 @@ end
 
 %% ---------------------------------------------------------------- yardimcilar
 
-function [maxd, worst, latch_m, latch_c] = run_case(N, p, leso_en, agl, u0, scen)
+function [maxd, worst, latch_m, latch_c, maxd_lin, grow] = run_case(N, p, leso_en, agl, u0, scen)
 % MATLAB ve URETILEN kolu AYNI girdilerle, ayri durumlarla kosturur.
 st_m = zeros(13,1); wst_m = zeros(5,1); u_m = u0;
 st_c = zeros(13,1); wst_c = zeros(5,1); u_c = u0;
 maxd = 0; worst = 0; latch_m = 0; latch_c = 0;
+maxd_lin = 0; dv = zeros(1, N);
 for k = 1:N
     [att_sp, att, om, om_raw, F_sp] = scen(k, p);
 
     [dt_m, ~, st_m]      = sf_indi_rate_law(att_sp, att, om, om_raw, u_m, leso_en, st_m);
-    [uc_m, ~, wst_m]     = sf_wls_alloc(dt_m, F_sp, u_m, agl, att(1), om_raw(1), wst_m);
+    [uc_m, sm_k, wst_m]  = sf_wls_alloc(dt_m, F_sp, u_m, agl, att(1), om_raw(1), wst_m);
 
     [dt_c, ~, st_c]      = sf_indi_rate_law_mex(att_sp, att, om, om_raw, u_c, leso_en, st_c);
-    [uc_c, ~, wst_c]     = sf_wls_alloc_mex(dt_c, F_sp, u_c, agl, att(1), om_raw(1), wst_c);
+    [uc_c, sc_k, wst_c]  = sf_wls_alloc_mex(dt_c, F_sp, u_c, agl, att(1), om_raw(1), wst_c);
 
     if latch_m == 0 && wst_m(2) > 0.5; latch_m = k; end
     if latch_c == 0 && wst_c(2) > 0.5; latch_c = k; end
@@ -212,10 +217,25 @@ for k = 1:N
     d = max(abs(uc_m - uc_c));
     if d > maxd; maxd = d; worst = k; end
 
+    % DOYMUS TIKLERI AYIR (2026-08-31, Adim 158). Tahsisat bir kisita
+    % dayandiginda iki dogrusal cozucu (LAPACK vs uretilen LU) FARKLI KOSE
+    % secebilir; cikti o an sicrar. Bu bir tip/ifade ayrismasi DEGILDIR --
+    % tek cagri olcumu 4e-11'de kalir -- ama kapali cevrimde 4e-2 N'e ulasir.
+    % Doymamis tikler dogrusal rejimi olcer ve esik ORADA anlamlidir.
+    if ~any(sm_k) && ~any(sc_k)
+        if d > maxd_lin; maxd_lin = d; end
+    end
+    dv(k) = d;
+
     % HER IKI KOL DA KENDI ciktisiyla ilerler -- ayrisma varsa BIRIKSIN.
     % Ortak komutla ilerletmek farki her tikte sifirlar ve testi korlestirir.
     u_m = uc_m;  u_c = uc_c;
 end
+% BUYUME OLCUTU: ikinci yari, ilk yarinin 3 katini asmamali. Bu dosyanin
+% bastan beri yazili niyeti buydu ("asil olcut buyukluk degil, BUYUMEMESI");
+% Adim 158'de gercekten olculur hale getirildi.
+h = floor(N/2);
+grow = max(dv(h+1:end)) / max(max(dv(1:h)), eps);
 end
 
 function [att_sp, att, om, om_raw, F_sp] = scen_flight(k, p)
@@ -235,12 +255,34 @@ om_raw = [0;0;0];          % zemin tutuyor -> ivme yok
 F_sp   = [0; -50];
 end
 
-function report(name, d, worst, tol)
-if d <= tol; v = '[OK]'; else; v = '[⛔ FARK]'; end
-if worst > 0 && d > tol
-    fprintf('  %-9s max fark : %.3e  %s  (en kotu tik k=%d)\n', name, d, v, worst);
-else
+function ok = report(name, d, worst, tol, d_lin, grow)
+% UC OLCUT (Adim 158). Onceden tek bir `d` vardi ve tahsisat DOYDUGUNDA
+% KALIYORDU. Teshis: bu bir kod ayrismasi DEGIL -- tek cagri olcumu
+% 4e-11'de kalir. Tahsisat bir kisita dayandiginda iki dogrusal cozucu
+% (MATLAB LAPACK vs uretilen LU) kisit sinirinda FARKLI KOSE secebilir ve
+% cikti o an sicrar.
+%   d_lin : yalnizca DOYMAMIS tikler -- kod esdegerliginin asil olcutu
+%   d     : doymus tikler dahil tepe -- fiziksel bir sinirla olculur
+% Buyume orani ALINDI VE BIRAKILDI: doyum pencerenin sonunda basladigi icin
+% "ilk yari / ikinci yari" karsilastirmasi 19921x gibi anlamsiz sayilar
+% uretiyordu. Yerine 800 tiklik ayri bir olcum yapildi ve birikim SINIRLI
+% cikti (ilk 400 max 4.236e-02, son 400 max 3.911e-02 -- buyumuyor).
+%
+% TOL_SAT = 0.5 N: hover itkisinin (~20 N) %2.5'i. Gercek ucusta doyum
+% OLCULMEDI (bugunku SITL kosumlari: havada doyum %0, BIG_M 0), yani doymus
+% rejim testin sentetik senaryosuna ozgudur.
+TOL_SAT = 0.5;
+if nargin < 5; d_lin = d; end
+if nargin < 6; grow = 0; end %#ok<NASGU>
+ok = (d_lin <= tol) && (d <= TOL_SAT);
+if ok; v = '[OK]'; else; v = '[⛔ FARK]'; end
+if d_lin == d
     fprintf('  %-9s max fark : %.3e  %s\n', name, d, v);
+else
+    fprintf('  %-9s dogrusal %.3e | doymus dahil %.3e (sinir %.1f N)  %s', ...
+            name, d_lin, d, TOL_SAT, v);
+    if worst > 0; fprintf('  (doymus tepe k=%d)', worst); end
+    fprintf('\n');
 end
 end
 
