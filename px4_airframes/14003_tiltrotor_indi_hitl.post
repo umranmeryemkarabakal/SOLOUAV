@@ -1,0 +1,5 @@
+# 14002'nin .post'unu KAYNAK GOSTERIR. Icerik oraya aittir: stok MC yigini
+# durdurulur ve mc_indi_tiltrotor baslatilir. HITL'de bu adim AYNEN gereklidir
+# -- SYS_HITL yalnizca sensor/cikis yolunu degistirir, kontrolcu secimini
+# degil. Kopyalamamak, iki dosyanin ayrismasini imkansiz kilar.
+. ${R}etc/init.d/airframes/14002_tiltrotor_indi.post

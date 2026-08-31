@@ -1,0 +1,15 @@
+# Swap out the stock MC attitude/rate/allocation/position stack for the
+# ported MATLAB INDI+LESO+WLS controller. rc.mc_apps (sourced by
+# rc.vehicle_setup, which runs before this .post script) already started
+# control_allocator, mc_rate_control, mc_att_control, flight_mode_manager
+# and mc_pos_control — stop them so there is exactly one publisher of
+# actuator_motors/actuator_servos and one consumer of vehicle_attitude/
+# vehicle_angular_velocity. land_detector and mc_hover_thrust_estimator stay
+# (harmless, useful for logging/arming logic).
+control_allocator stop
+mc_rate_control stop
+mc_att_control stop
+flight_mode_manager stop
+mc_pos_control stop
+
+mc_indi_tiltrotor start

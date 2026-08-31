@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# @name Tiltrotor Tailplane INDI (MATLAB port)
+#
+# @class Copter
+# @type Tricopter Y+
+#
+# @output Motor1 sol kanat rotoru T0
+# @output Motor2 sag kanat rotoru T1
+# @output Motor3 kuyruk rotoru T2
+# @output Servo1 sol elevon
+# @output Servo2 sag elevon
+# @output Servo3 sol elevator
+# @output Servo4 sag elevator
+# @output Servo5 rudder
+# @output Servo6 sol kanat tilt delta0
+# @output Servo7 sag kanat tilt delta1
+# @output Servo8 kuyruk tilt delta2
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+# SITL karsiligi: init.d-posix/airframes/4023_gz_tiltrotor_indi (+ .post).
+# Bu dosya onun GERCEK KART surumudur: simulator (SIM_GZ_*) parametreleri
+# yoktur, yerine gercek cikis atamalari (PWM_MAIN_*/PWM_AUX_*) gelir.
+#
+# BILEREK rc.vtol_defaults DEGIL: bu arac duz bir multikopter olarak acilir.
+# Tasinan MATLAB kontrolcusu (mc_indi_tiltrotor) PX4'un VTOL gecis durum
+# makinesini kullanmaz -- kendi WLS tahsisati tilt'e Fx_sp'den karar verir
+# (indi_attitude_controller.m ile ayni). VTOL olarak acilmak vtol_att_control'u
+# baslatirdi; o da tilt'i tiltrotor_extra_controls uzerinden ACIK CEVRIM
+# komutlar ve bizim WLS'in tilt karariyla dogrudan cakisirdi.
+
+param set-default MAV_TYPE 2
+
+# control_allocator .post betiginde durdurulur, yani CA_* HIC TUKETILMEZ.
+# Rotor/tilt geometrisi (tiltrotor_params.m karsiligi) modulun icine derlenmis
+# sabitlerdedir (TiltrotorIndiParams.hpp), CA_* degil.
+
+# --- CIKIS ATAMALARI ---
+# Fonksiyon numaralari PX4 genelinde ayni: 101-103 = Motor1-3, 201-208 =
+# Servo1-8. SITL'deki SIM_GZ_EC_FUNC*/SIM_GZ_SV_FUNC* ile SIRA BIREBIR AYNI
+# tutuldu, boylece SITL'de dogrulanan esleme kartta da gecerli olsun.
+#
+# !! KABLOLAMAYA GORE DOGRULAYIN !! Bu dagilim MAIN 1-8 uzerinde uc rotor +
+# bes yuzey, AUX 1-3 uzerinde uc tilt servosu varsayar. Kablolama farkliysa
+# DEGISTIRILECEK YER BURASIDIR; modul hangi pinin hangi cikisi surdugunu
+# bilmez, yalnizca actuator_motors/actuator_servos yayinlar.
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 201
+param set-default PWM_MAIN_FUNC5 202
+param set-default PWM_MAIN_FUNC6 203
+param set-default PWM_MAIN_FUNC7 204
+param set-default PWM_MAIN_FUNC8 205
+
+param set-default PWM_AUX_FUNC1 206
+param set-default PWM_AUX_FUNC2 207
+param set-default PWM_AUX_FUNC3 208
+
+# Tilt servolari 0..90 derece suprur (SITL'de SIM_GZ_SV_MINA6/MAXA6 ...).
+# Verilmezse surucu kendi +-57.29578 derecelik varsayilanina duser ve tilt
+# komutu YANLIS OLCEKLENIR.
+param set-default PWM_AUX_MINA1 0
+param set-default PWM_AUX_MAXA1 90
+param set-default PWM_AUX_MINA2 0
+param set-default PWM_AUX_MAXA2 90
+param set-default PWM_AUX_MINA3 0
+param set-default PWM_AUX_MAXA3 90
+
+# Disarm halinde rotorlari DIK park et (orta menzil 45 derece degil).
+# SITL'de SIM_GZ_SV_DIS6/7/8 = 0 idi.
+param set-default PWM_AUX_DIS1 0
+param set-default PWM_AUX_DIS2 0
+param set-default PWM_AUX_DIS3 0
+
+# --- ACIK KALANLAR, BILEREK BURAYA YAZILMADI ---
+# ITKI ESLEMESI (engelleyici B3): modulun thrustToNormalized() fonksiyonu
+# Gazebo motor modeline (ROTOR_KF=2e-5, WMAX=1500, WMIN=10) kalibrelidir.
+# Gercek donanimda OLCULMUS motor/ESC egrisinden yeniden turetilmelidir; ayni
+# sayilari tasimak yeni bir itki esleme hatasi yaratir (WLS raporu Adim 11).
+# PWM_MAIN_MIN/MAX ve ESC kalibrasyonu da o olcumden sonra ayarlanmalidir.
+#
+# FIZIKSEL SABITLER (B2): kutle, atalet, rotor konumlari, km -- hepsi bugun
+# SDF'ten geliyor, hicbiri olculmedi.
+#
+# ROTOR_PY ISARETI (B4): simulasyon tarafi cozuldu, fiziksel dogrulama duruyor.
+#
+# Ayrinti: HARDWARE_READINESS_CHECKLIST.md

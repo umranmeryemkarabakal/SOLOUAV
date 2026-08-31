@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# @name Tiltrotor Tailplane — MATLAB INDI/LESO/WLS controller test rig
+#
+# @type Quadrotor
+#
+
+# Deliberately NOT rc.vtol_defaults: this airframe boots as a plain
+# multicopter. The ported MATLAB controller (mc_indi_tiltrotor) has no
+# notion of PX4's VTOL transition state machine — it is an INDI attitude/rate
+# controller with its own WLS allocator that decides rotor tilt directly from
+# Fx_sp, exactly like the MATLAB reference (indi_attitude_controller.m). See
+# tiltrotor_Matlab files/README.md "Bilinen sınırlamalar" and
+# ~/.claude/plans/cached-dancing-puppy.md for the full rationale. Booting as
+# VTOL would start vtol_att_control, which commands tilt open-loop via
+# tiltrotor_extra_controls — directly conflicting with our WLS' own tilt
+# decision.
+. ${R}etc/init.d/rc.mc_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+# Reuses Model-3's Gazebo model (Tools/simulation/gz/models/tiltrotor_tailplane) —
+# no new SDF, only the flight-stack side differs.
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=tiltrotor_tailplane}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+param set-default MAV_TYPE 2
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+param set-default FD_ACT_EN 0
+param set-default FD_ESCS_EN 0
+
+# control_allocator is stopped (see the .post script), so CA_* is never
+# consumed — actuator_motors/actuator_servos are published directly by
+# mc_indi_tiltrotor instead. The rotor/tilt geometry it needs
+# (tiltrotor_params.m equivalent) is compiled into the module / its own
+# INDI_* params, not CA_*.
+
+# Motor and servo channel mapping is downstream of *who* publishes
+# actuator_motors/actuator_servos — control_allocator or mc_indi_tiltrotor,
+# it makes no difference to the gz_bridge. These stay identical to
+# 4022_gz_tiltrotor_tailplane (docs/gz_tiltrotor/RUNBOOK.md §3).
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MIN2 10
+param set-default SIM_GZ_EC_MIN3 10
+
+param set-default SIM_GZ_EC_MAX1 1500
+param set-default SIM_GZ_EC_MAX2 1500
+param set-default SIM_GZ_EC_MAX3 1500
+
+# Servos 1-5: control surfaces (model servo_0..servo_4) — held at trim by
+# mc_indi_tiltrotor (out of scope for the ported controller, see plan).
+# Servos 6-8: rotor tilt (model servo_5..servo_7) — driven by the WLS
+# allocator's tilt output.
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+param set-default SIM_GZ_SV_FUNC6 206
+param set-default SIM_GZ_SV_FUNC7 207
+param set-default SIM_GZ_SV_FUNC8 208
+
+# Tilt servos sweep 0..90 deg; without this the bridge falls back to its
+# default +-57.29578 deg range.
+param set-default SIM_GZ_SV_MINA6 0
+param set-default SIM_GZ_SV_MAXA6 90
+param set-default SIM_GZ_SV_MINA7 0
+param set-default SIM_GZ_SV_MAXA7 90
+param set-default SIM_GZ_SV_MINA8 0
+param set-default SIM_GZ_SV_MAXA8 90
+
+# Park the rotors upright while disarmed instead of at the mid-range 45 deg.
+param set-default SIM_GZ_SV_DIS6 0
+param set-default SIM_GZ_SV_DIS7 0
+param set-default SIM_GZ_SV_DIS8 0
+
+param set-default MIS_TAKEOFF_ALT 10

@@ -15,6 +15,7 @@ keşfetmeye gerek yok:
 | SITL deneyleri ve analiz | `sitl_experiments/` (`run_*.m` koşumları + `*.py` analiz) |
 | Araç modeli | `tiltrotor_tailplane_model.sdf` (PX4'teki `models/tiltrotor_indi/model.sdf` ile birebir aynı) |
 | CAD | `cad/` — SDF'ten üretilmiş STEP katıları, `cad/README.md` + `cad/MONTAJ.md` |
+| PX4 airframe | `px4_airframes/` — SITL (4023), gerçek kart (14002), **HITL (14003)** + `README.md`; PX4 ağacındaki kopyaların yedeği |
 | Gazebo tarafı | `gz_model/` — model.sdf (depo kökündekine **hardlink**) + model.config + `worlds/windy_tiltrotor.sdf`; açıklama `gz_model/README.md` |
 | Mevcut yazılı kayıt | `RUNBOOK.md` (78 KB), `WLS_LOCKUP_INVESTIGATION_REPORT.md` (534 KB) |
 

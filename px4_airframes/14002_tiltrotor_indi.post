@@ -1,0 +1,25 @@
+# Stok MC tutum/hiz/tahsisat/pozisyon yiginini, tasinan MATLAB INDI+LESO+WLS
+# kontrolcusuyle degistir. rc.mc_apps (rc.vehicle_setup tarafindan, bu .post
+# betiginden ONCE calisir) control_allocator, mc_rate_control, mc_att_control,
+# flight_mode_manager ve mc_pos_control'u zaten baslatti -- durdur ki
+# actuator_motors/actuator_servos'un TEK yayincisi ve vehicle_attitude/
+# vehicle_angular_velocity'nin tek tuketicisi olsun.
+#
+# BU DOSYA OPSIYONEL DEGIL: durdurulmazsa kartta iki modul ayni anda
+# actuator_motors'a yazar ve cikis tanimsiz olur.
+#
+# land_detector ve mc_hover_thrust_estimator KALIR (zararsiz; loglama ve
+# arming mantigi icin kullanilir). land_detector'in ihtiyac duydugu
+# vehicle_thrust_setpoint'i modulun kendisi yayinlar
+# (MulticopterIndiTiltrotor.hpp:115) -- yoksa COM_DISARM_PRFLT arm'dan ~10 s
+# sonra araci disarm eder.
+#
+# SITL karsiligi: init.d-posix/airframes/4023_gz_tiltrotor_indi.post (birebir
+# ayni durdurma listesi; iki dosya SENKRON tutulmalidir).
+control_allocator stop
+mc_rate_control stop
+mc_att_control stop
+flight_mode_manager stop
+mc_pos_control stop
+
+mc_indi_tiltrotor start

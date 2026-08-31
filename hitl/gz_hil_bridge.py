@@ -200,6 +200,48 @@ class GzHilBridge:
         return True
 
     # ---------------- kart -> gz ----------------
+    #
+    # HIL KANAL ESLEMESI (2026-08-31, Adim 149 -- H6).
+    # Artik TAHMIN DEGIL: 14003_tiltrotor_indi_hitl airframe'i HIL_ACT_FUNC*'i
+    # 14002'nin PWM_MAIN_FUNC*/PWM_AUX_FUNC* sirasiyla BIREBIR ayni kuruyor,
+    # yani karttan gelen controls[] indeksleri asagidaki anlamlari tasir.
+    # Fonksiyon numaralari PX4 genelinde sabittir: 101-103 Motor1-3,
+    # 201-208 Servo1-8.
+    HIL_CHANNELS = [
+        (0,  101, 'motor_0  sol kanat rotoru T0'),
+        (1,  102, 'motor_1  sag kanat rotoru T1'),
+        (2,  103, 'motor_2  kuyruk rotoru T2'),
+        (3,  201, 'servo_0  sol elevon'),
+        (4,  202, 'servo_1  sag elevon'),
+        (5,  203, 'servo_2  sol elevator'),
+        (6,  204, 'servo_3  sag elevator'),
+        (7,  205, 'servo_4  rudder'),
+        (8,  206, 'servo_5  sol kanat tilt delta0'),
+        (9,  207, 'servo_6  sag kanat tilt delta1'),
+        (10, 208, 'servo_7  kuyruk tilt delta2'),
+    ]
+
+    def log_actuator_scale(self, msg, path='hil_actuator_scale.csv'):
+        """[YAZILDI] Karttan gelen ham controls[] degerlerini diske yazar.
+
+        NEDEN AYRI BIR FONKSIYON: `pump_actuators` OLCEK bilinmedigi icin
+        yazilamiyor, ama olcegi OLCMEK icin gereken sey tam olarak budur --
+        karttan gelen ham degerleri, bilinen kanal anlamlariyla birlikte
+        kaydetmek. Kart baglandiginda YAPILACAK ILK IS bu (madde K4).
+        Bilinen bir manevra (orn. tilt 0 -> 90 deg suprumu) sirasinda
+        kaydedilirse, controls[8..10] ile gercek tilt acisi arasindaki olcek
+        dogrudan okunur; ayni sey motorlar icin itki/rad-s egrisini verir.
+        """
+        import csv
+        import os as _os
+        new = not _os.path.exists(path)
+        with open(path, 'a', newline='') as fh:
+            w = csv.writer(fh)
+            if new:
+                w.writerow(['t_us'] + [f'c{i}_{fn}' for i, fn, _ in self.HIL_CHANNELS])
+                w.writerow(['#'] + [d for _, _, d in self.HIL_CHANNELS])
+            w.writerow([msg.time_usec] + [msg.controls[i] for i, _, _ in self.HIL_CHANNELS])
+
     def pump_actuators(self):
         """[EKSIK] Kartin HIL_ACTUATOR_CONTROLS mesajini gz'ye uygulamak.
 
@@ -207,6 +249,8 @@ class GzHilBridge:
         tipleri calisan SITL'den dogrulandi. Eksik olan, MAVLink'ten gelen
         `controls[16]` dizisinin bu iki konuya DOGRU esleneceginin
         dogrulanmasi:
+        KANAL ESLEMESI ARTIK BILINIYOR (yukaridaki HIL_CHANNELS, Adim 149):
+        14003 airframe'i HIL_ACT_FUNC*'i 14002'nin cikis sirasiyla ayni kurdu.
           controls[0..2]  -> motor_speed (Actuators.velocity, rad/s)
           controls[3..10] -> servo_0..7  (Double, rad)
         ⚠ OLCEK BILINMIYOR: PX4 normalize (0..1) gonderir; gz motor modeli

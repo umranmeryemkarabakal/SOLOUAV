@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# @name Tiltrotor Tailplane INDI HITL
+#
+# @class Copter
+# @type Tricopter Y+
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/airframes/14002_tiltrotor_indi
+
+# 14002'yi KAYNAK GOSTERIR, KOPYALAMAZ. Bu depo uc uygulamanin (MATLAB,
+# codegen, PX4) ayrismasindan defalarca zarar gordu; iki airframe dosyasini
+# elle senkron tutmak ayni hatayi yapilandirma tarafinda tekrarlamak olurdu.
+# Airframe betikleri rc.autostart tarafindan `.` ile SOURCE edilir (olculdu:
+# build/.../etc/init.d/rc.autostart), yani source zinciri calisir ve ${R}
+# rcS tarafindan zaten tanimlidir.
+#
+# Buradan sonrasi YALNIZCA HITL farklaridir. Cikis fonksiyonlari, tilt servo
+# olcekleri, .post durdurma listesi -- hepsi 14002'den gelir.
+
+# ---------------------------------------------------------------------------
+# HITL ANAHTARI
+# ---------------------------------------------------------------------------
+# `param set` (set-default DEGIL): bu boot'ta etkili olmali. rcS'in HITL dali
+# (satir ~342) airframe'den SONRA calisir ve `param greater SYS_HITL 0`
+# gorurse sunlari yapar (kaynaktan okundu, tahmin degil):
+#     pwm_out_sim start -m hil     <- gercek PWM cikisi yerine HIL kanallari
+#     sensors start -h             <- gercek sensorler yerine HIL_SENSOR
+#     commander start -h           <- HIL_STATE_ON; asil anahtar BUDUR
+#     param set GPS_1_CONFIG 0     <- gercek GPS kapatilir
+#
+# ⚠ SYS_HITL TEK BASINA YETMEZ: Commander::instantiate() HIL'i `argv[1]=="-h"`
+# ile aciyor (Commander.cpp:2669), parametreyi okuyarak degil. Yani HIL'i
+# fiilen acan sey rcS'in yukaridaki dalidir; SYS_HITL onu tetikleyen kosuldur.
+param set SYS_HITL 1
+
+# ---------------------------------------------------------------------------
+# HIL AKTUATOR KANAL ESLEMESI
+# ---------------------------------------------------------------------------
+# pwm_out_sim'in HIL grubu 16 kanal yayinlar (module_hil.yaml, param_prefix
+# HIL_ACT). Fonksiyon numaralari PX4 genelinde ayni: 101-103 = Motor1-3,
+# 201-208 = Servo1-8.
+#
+# SIRA 14002'nin PWM_MAIN_FUNC*/PWM_AUX_FUNC* SIRASIYLA BIREBIR AYNI tutuldu.
+# Boylece HIL_ACTUATOR_CONTROLS.controls[] icindeki kanal indeksi, gercek
+# ucusta hangi pinin surulecegiyle ayni anlami tasir -- kopru tarafinda
+# (hitl/gz_hil_bridge.py) tek bir esleme tablosu yeter.
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 201
+param set-default HIL_ACT_FUNC5 202
+param set-default HIL_ACT_FUNC6 203
+param set-default HIL_ACT_FUNC7 204
+param set-default HIL_ACT_FUNC8 205
+param set-default HIL_ACT_FUNC9 206
+param set-default HIL_ACT_FUNC10 207
+param set-default HIL_ACT_FUNC11 208
+
+# ---------------------------------------------------------------------------
+# HITL EMNIYET DEVRE DISI BIRAKMALARI
+# ---------------------------------------------------------------------------
+# Kart tezgahta: batarya yok, emniyet anahtari yok, CAN yok. Bu devre
+# kesiciler olmadan preflight arm'i reddeder. Degerler PX4'un kendi HITL
+# airframe'lerinden alindi (1002_standard_vtol.hil).
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default CBRK_IO_SAFETY 22027
+param set-default UAVCAN_ENABLE 0
+
+# Kumanda girisi: MAVLink joystick (MANUAL_CONTROL). Bu depodaki butun pilot
+# testleri o yoldan surulur. GERCEK RC vericisi yolu (RC_CHANNELS_OVERRIDE)
+# HALA SINANMADI -- madde H8; burada 0/2/3 secmek onu sinanmis gostermez.
+param set-default COM_RC_IN_MODE 1
