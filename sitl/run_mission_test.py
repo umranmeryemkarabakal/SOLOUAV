@@ -342,6 +342,46 @@ def main() -> int:
         # Fonksiyon TESHIS AMACLI duruyor: takilma uyarisinda |w| yazdirmak,
         # "asili mi yoksa oturmus mu" sorusunu sonradan loga bakarak
         # ayirt etmeyi kolaylastiriyor. KARAR VERMEZ.
+        # AGIRLIK: SDF base_link kutlesi 5.0 kg. Fizik olcutu bunu esik
+        # olarak kullanir; SDF degisirse burasi da degismelidir.
+        WEIGHT_N = 5.0 * 9.81
+        GROUND_THRUST_FRAC = 0.5      # agirligin bu kesrinin altindaysa yerde
+
+        def on_ground_by_thrust():
+            """FIZIK OLCUTU (2026-08-31, Adim 150): dikey itki agirligin cok
+            altindayken arac DUSMUYORSA, onu tutan sey zemindir.
+
+            NEDEN GEREKLI: yukaridaki olcutlerin hepsi IRTIFA sinyaline
+            dayaniyor ve yanilan sinyal tam olarak o. Olculdu (bu oturum,
+            6 kosum): arac yerde otururken datum tabanli agl 0.64-1.15 m
+            gosterdi, betik "temas dogrulanamadi" deyip motorlari kesti.
+            Iki kosumda arac gercekten 0.8 m'de asili kaldi ve kesme sonrasi
+            DUSTU -- olculen carpma 3.0 ve 5.8 m/s. Gercek arac bunu kaldirmaz.
+
+            Bu olcut irtifadan TAMAMEN bagimsizdir. Olculen ayrisma:
+              yerde oturmus : 5.2, 12.3, 13.1 N
+              asili/alcalan : 34.2, 42.3, 50.4, 50.6 N
+            Esik 0.5*agirlik = 24.5 N tam ortadan geciyor.
+
+            |vz| kosulu SART: itki dusuk AMA arac dusuyorsa bu serbest
+            dusustur, temas degil. Ikisi birlikte "bir sey onu tutuyor" der.
+
+            NOT: vehicle_land_detected KULLANILMADI -- bu gövde icin guvenilir
+            olmadigi Adim 110'da olculmustu (14 s gec) ve bu oturumda da
+            dogrulandi: arac acikca yerdeyken landed %0 kaldi.
+            """
+            st = sc.parse_named_floats(px4.listener("tiltrotor_indi_status"))
+            ua, du_ = st.get("u_actual"), st.get("du")
+            if not ua or not du_ or len(ua) < 6 or len(du_) < 6:
+                return False, float("nan")
+            try:
+                thr = [float(ua[i]) + float(du_[i]) for i in range(3)]
+                tlt = [float(ua[i + 3]) + float(du_[i + 3]) for i in range(3)]
+            except (TypeError, ValueError):
+                return False, float("nan")
+            ctz = sum(thr[i] * math.cos(tlt[i]) for i in range(3))
+            return ctz < GROUND_THRUST_FRAC * WEIGHT_N, ctz
+
         def rates_pinned():
             w = sc.parse_named_floats(px4.listener("vehicle_angular_velocity"))
             xyz = w.get("xyz", None)
@@ -487,18 +527,41 @@ def main() -> int:
             # tasiyordu ve arac YERDEYDI, ama olcut onu goremiyordu.
             # 0.55 m: ayak yuksekligi (0.04) + govde yari kalinligi (0.025) +
             # olculen oturma payi. Eski 0.30 esigi INIS TAKIMSIZ modele aitti.
-            ok = agl_c < 0.55 and abs(vz_c) < 0.15
+            # IKI BAGIMSIZ YOL, VEYA ile (Adim 150). Irtifa yolu KORUNDU;
+            # fizik yolu yalnizca EKLENIR, yani tespit kotulesemez.
+            ok_alt = agl_c < 0.55 and abs(vz_c) < 0.15
+            low_thrust, ctz_c = on_ground_by_thrust()
+            # FIZIK YOLUNDA |vz| KOSULU YOK, VE BU BILEREK (Adim 150).
+            # Ilk yazimda vardi; kayitli loglara karsi sinandi ve aracin
+            # ACIKCA yerde oldugu bir kosumu (dikey itki 5.2 N) KACIRDI,
+            # cunku EKF'in vz'si o sirada 0.263 m/s okuyordu. vz, yanilan
+            # irtifa sinyaliyle AYNI kestirimciden geliyor; onu kapi yapmak
+            # kotu sinyali geri sokmak olurdu.
+            # Yerine SUREKLILIK: 5.2 N itkiyle havada olsaydi arac
+            # (1 - 5.2/49.05)*g = 8.8 m/s^2 ile duserdi. Asagidaki
+            # `settled >= 3` (3 x 0.5 s = 1.5 s) suresince duşuş 11 m eder;
+            # inis fazi 2 m'de basladigina gore boyle bir sey imkansizdir.
+            # Yani SUREKLI dusuk itki tek basina temas kanitidir.
+            ok_phys = low_thrust
+            ok = ok_alt or ok_phys
             settled = settled + 1 if ok else 0
             if settled >= 3:
-                print(f"   temas dogrulandi (agl {agl_c:.2f} m, ham irtifa "
-                      f"{-z_c:.2f} m, vz {vz_c:+.2f}, |w| {wmax:.4f} rad/s) -> disarm")
+                yol = "irtifa" if ok_alt else "FIZIK (dikey itki)"
+                print(f"   temas dogrulandi [{yol}] (agl {agl_c:.2f} m, ham irtifa "
+                      f"{-z_c:.2f} m, vz {vz_c:+.2f}, dikey itki {ctz_c:.1f}/"
+                      f"{WEIGHT_N:.1f} N, |w| {wmax:.4f} rad/s) -> disarm")
                 break
             time.sleep(0.5)
         else:
             lp_now = px4.local_position()
             z_f = lp_now.get('z', 0.0)
+            _, ctz_f = on_ground_by_thrust()
             print(f"   ARIZA: temas dogrulanamadi, agl {z0 - z_f:.2f} m "
-                  f"(ham irtifa {-z_f:.2f} m) -- motorlar YINE DE kesiliyor")
+                  f"(ham irtifa {-z_f:.2f} m, dikey itki {ctz_f:.1f}/{WEIGHT_N:.1f} N) "
+                  f"-- motorlar YINE DE kesiliyor")
+            if ctz_f == ctz_f and ctz_f < GROUND_THRUST_FRAC * WEIGHT_N:
+                print(f"   ⚠ ama dikey itki agirligin altinda: arac MUHTEMELEN "
+                      f"YERDEYDI ve |vz| kosulu tutmadi -- logu inceleyin")
         px4.disarm(force=True)
         time.sleep(2.0)
 
