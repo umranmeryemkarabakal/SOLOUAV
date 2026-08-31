@@ -928,8 +928,11 @@ enum class MissionState : int32_t {
 static constexpr float MSN_CLIMB_ALT = 40.0f;    // m AGL, FT_MIN_ALT=20'nin ustu
 static constexpr float MSN_CLIMB_TOL = 2.0f;     // m, tirmanis tamam sayilir
 static constexpr float MSN_SETTLE_S = 12.0f;     // s, hover oturma
-static constexpr float MSN_CRUISE_S = 15.0f;     // s, tilt-seyir
-static constexpr float MSN_FW_CRUISE_S = 20.0f;  // s, sabit kanat
+// SEYIR SURELERI KISALTILDI (2026-08-31): 15/20 s ile arac 683 m uzaga
+// gidiyordu ve donus 3 m/s ile ~230 s suruyordu. Kullanici: 'iyice
+// dogrudan uzaklasmayalim'. 8/10 s ~350 m verir, donus ~115 s.
+static constexpr float MSN_CRUISE_S = 8.0f;      // s, tilt-seyir
+static constexpr float MSN_FW_CRUISE_S = 10.0f;  // s, sabit kanat
 static constexpr float MSN_LAND_VH = 1.0f;       // m/s, altinda inise gecilir
 
 // EVE DONUS (2026-08-31, Adim 155). Kullanici olcumu: gorev 683 m uzaga gidip

@@ -249,6 +249,7 @@ private:
 	float _msn_home_x{0.f};
 	float _msn_home_y{0.f};
 	float _msn_home_yaw{0.f};
+	float _msn_yaw_hold{0.f};
 	bool _msn_req_home{false};
 	float _land_step_timer{0.f};
 	float _land_touch_dwell{0.f};

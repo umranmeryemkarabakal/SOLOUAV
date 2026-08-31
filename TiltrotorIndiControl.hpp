@@ -1424,7 +1424,8 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 			     bool &req_fw, bool &req_land, float &z_sp_out,
 			     float z_datum, float z_now,
 			     float pos_x, float pos_y, float &home_x, float &home_y, float &home_yaw,
-			     bool &req_home, float yaw_now, float &yaw_sp_out)
+			     bool &req_home, float yaw_now, float &yaw_sp_out,
+			     float &yaw_hold)
 {
 	if (!enable) {
 		state = MissionState::IDLE;
@@ -1469,6 +1470,7 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 		home_x = pos_x;
 		home_y = pos_y;
 		home_yaw = yaw_now;
+		yaw_hold = yaw_now;
 		yaw_sp_out = yaw_now;
 		state = MissionState::CLIMB;
 		phase_timer = 0.f;
@@ -1586,6 +1588,13 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 			// AYRI ZAMAN SINIRI: 683 m'yi 3 m/s ile katetmek ~228 s surer,
 			// yani genel 60 s'lik sinir burada anlamsizdir.
 			if (dist < MSN_HOME_R || phase_timer > MSN_RETURN_TIMEOUT_S) {
+				// YAW'I DONDUR (2026-08-31 duzeltmesi). Olculdu: bu satir
+				// olmadan SETTLE/LAND varsayilan yaw_sp = home_yaw'a donuyor
+				// ve arac INERKEN 166 derece geri doniyordu (SETTLE +70,
+				// LAND +96, SETTLE'da |yaw hizi| ort 24 deg/s). Inis
+				// sirasinda donmek, temas anini bilinmeyen bir yonelime
+				// birakmak demektir.
+				yaw_hold = yaw_now;
 				state = MissionState::SETTLE;
 				phase_timer = 0.f;
 			}
@@ -1595,6 +1604,7 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 
 	case MissionState::SETTLE:
 		req_pos_hold = true;
+		yaw_sp_out = yaw_hold;
 
 		// Yatay hiz sonmeden inise gecmek, araci yana suruklenirken
 		// indirmek demektir.
@@ -1608,6 +1618,31 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 	case MissionState::LAND:
 		req_pos_hold = true;
 		req_land = true;
+		// YAW: RETURN CIKISINDA DONDURULAN YON TUTULUR (2026-08-31).
+		//
+		// UC SECENEK OLCULDU, ayni gorev, ayni inis:
+		//   home_yaw'a don : SETTLE +70.0 deg, LAND +96.0 deg donus  ⛔
+		//   yaw'i BIRAK    : LAND +41.3 deg surukleme               (betigin yolu)
+		//   yaw'i DONDUR   : LAND  +1.4 deg                          ✅ secildi
+		// Inis KALITESI ucunde de ayni (BIG_M 0, |T0-T1| 0.59 vs 0.61 N,
+		// T2 min 11.76 vs 11.44 N) -- fark yalnizca yon tutmada, 30 kat.
+		//
+		// NEDEN BETIK "BIRAK" DIYORDU VE BURADA GECERLI DEGIL:
+		// run_mission_test.py 2026-08-28'de yaw referansini inis boyunca
+		// birakiyordu ve gerekcesi dogruydu -- ama coezdugu sey BAYAT
+		// REFERANSTI: betigin tuttugu yon KALKIS yonuydu (yaw0) ve gorev
+		// sonunda arac ondan cok sapmis oluyordu; o buyuk hatayla guresmek
+		// kanat itki farkini buyutup kilitlenme uretiyordu.
+		// Burada referans RETURN cikisinda O ANKI yonde yakalanir, yani hata
+		// SIFIRDAN baslar. Birakmanin faydasi (hata yok) korunur, bedeli
+		// (geri getirici referans yok, arac suruklenir) odenmez.
+		//
+		// Bu ayni zamanda LAND_YAW_FREE_ALT'in (Adim 129) neden "etkisiz"
+		// olctugunu da acikliyor: betik zaten birakiyordu, modulun ayni seyi
+		// tekrar yapmasinin olculebilir bir etkisi olamazdi.
+		//
+		// SETTLE'da da ayni yaw_hold: orada arac hala yatay hizi soduruyor.
+		yaw_sp_out = yaw_hold;
 		z_sp_out = z_now;   // profili landingSequence uretir
 
 		if (land == LandState::TOUCHDOWN) {
@@ -1621,6 +1656,7 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 	default:
 		req_pos_hold = true;
 		req_land = true;
+		yaw_sp_out = yaw_hold;
 		z_sp_out = z_now;
 		break;
 	}

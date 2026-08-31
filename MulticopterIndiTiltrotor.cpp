@@ -951,7 +951,8 @@ MulticopterIndiTiltrotor::Run()
 						 req_pos_hold, req_ft, req_bt, req_fw, req_land,
 						 msn_z_sp, _z_datum, lpos.z,
 						 lpos.x, lpos.y, _msn_home_x, _msn_home_y,
-						 _msn_home_yaw, _msn_req_home, att_now(2), yaw_sp);
+						 _msn_home_yaw, _msn_req_home, att_now(2), yaw_sp,
+						 _msn_yaw_hold);
 		z_sp = msn_z_sp;
 
 	} else {
