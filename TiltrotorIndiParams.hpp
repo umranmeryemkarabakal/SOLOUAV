@@ -884,6 +884,49 @@ static constexpr bool FT_ALLOW_ABORT = false;
 // tilts. Aborting means REQUESTING THE BACK-TRANSITION.
 enum class FtState : int32_t { IDLE = 0, RAMP = 1, CRUISE = 2 };
 
+// ---------------------------------------------------------------------------
+// INIS DIZISI (2026-08-31, Adim 153 -- madde B0)
+// ---------------------------------------------------------------------------
+// NEDEN MODULE TASINDI: profil (kademeli alcalma, flare, temas) PC tarafindaki
+// run_mission_test.py icindeydi ve o betik hedefi `px4-mc_indi_tiltrotor
+// test_sp` POSIX KABUK ISTEMCISIYLE gonderiyordu. O yol yalnizca SITL'de var
+// (indi_sitl_common.py basligi: "external MAVLink clients cannot publish
+// arbitrary uORB topics"). Kartta karsiligi yok, ve flight_mode_manager ile
+// mc_pos_control bu airframe'de bilerek durduruldugu icin PX4'un kendi land
+// modu da yok. Yani kart bugun flash edilse OTONOM INIS OLMAZDI.
+//
+// SAYILAR PC BETIGINDEN BIREBIR TASINDI, yeniden ayarlanmadi: hepsi olculerek
+// bulunmustu ve gerekceleri run_mission_test.py'de yazili.
+//   1 m kademe   : 1.5 m kademe inis fazinda 13 BIG_M uretmisti (RUNBOOK (O))
+//   1.5 s periyot: irtifa dongusu 1 m'lik bir adimi bundan hizli kapatamiyor
+//   FLARE 1.5 m  : altinda hedef YERIN ALTINA surulur
+//   TOUCH  0.15 m: 0.5 m COK FAZLAYDI -- temastan sonra da bastirip araci
+//                  zemine gommeye calisiyordu (2026-08-29)
+enum class LandState : int32_t { IDLE = 0, DESCEND = 1, FLARE = 2, TOUCHDOWN = 3 };
+
+static constexpr float LAND_STEP_M = 1.0f;      // m, her kademede inilecek
+static constexpr float LAND_STEP_S = 1.5f;      // s, kademeler arasi bekleme
+static constexpr float LAND_FLARE_ALT = 1.5f;   // m AGL, altinda temas komut edilir
+static constexpr float LAND_TOUCH_Z = 0.15f;    // m, YER DATUMUNUN ALTI
+static constexpr float LAND_DONE_ALT = 0.25f;   // m AGL, altinda inis tamamlandi
+
+// TEMAS OLCUTU: dikey itki agirligin bu kesrinin altindaysa arac yerdedir.
+// IRTIFADAN BAGIMSIZ, ve bu bilerek -- yanilan sinyal tam olarak irtifaydi.
+// Olculen ayrisma (6 kosum): yerde 5.2/12.3/13.1 N, asili-alcalan
+// 34.2/42.3/50.4/50.6 N. Esik 0.5*49.05 = 24.5 N tam ortadan geciyor.
+// |vz| KOSULU YOK: denendi ve aracin acikca yerde oldugu bir kosumu kacirdi
+// (EKF'in vz'si 0.263 okuyordu) -- vz, yanilan irtifayla ayni kestirimciden
+// gelir. Yerine SUREKLILIK: 5.2 N ile havada olsaydi arac 8.8 m/s^2 ile
+// duserdi, LAND_TOUCH_DWELL suresince metrelerce yol eder.
+static constexpr float LAND_GROUND_THRUST_FRAC = 0.5f;
+static constexpr float LAND_TOUCH_DWELL = 1.5f;  // s, kesintisiz temas suresi
+
+// ALCALMA TAKILDI: bu sure boyunca irtifa LAND_STALL_DZ'den az degistiyse
+// profil ilerlemiyordur. Modul KENDI DISARM ETMEZ; yalnizca DESCEND'de
+// kalir ve durumu yayinlar -- karar disaridadir.
+static constexpr float LAND_STALL_DZ = 0.05f;    // m
+static constexpr float LAND_STALL_S = 4.5f;      // s (betikteki 3 x 1.5 s)
+
 // Fixed-wing terminal mode (Adim 59-61 MATLAB port). See fixedWingTransition()/
 // fixedWingControlLaw() in TiltrotorIndiControl.hpp for the mechanism, and the
 // FIXED-WING MODE constants block below (after AERO_WING_A0) for the gains.

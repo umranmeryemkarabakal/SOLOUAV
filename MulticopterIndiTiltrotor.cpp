@@ -760,6 +760,7 @@ MulticopterIndiTiltrotor::Run()
 	bool req_bt = false;
 	bool req_ft = false;
 	bool req_fw = false;
+	bool req_land = false;
 
 	if (_setpoint_valid) {
 		roll_sp = _setpoint.roll_sp;
@@ -767,6 +768,7 @@ MulticopterIndiTiltrotor::Run()
 		yaw_sp = _setpoint.yaw_sp;
 		fx_sp = _setpoint.fx_sp;
 		z_sp = _setpoint.z_sp;
+		req_land = _setpoint.land_enable;
 		leso_enable[0] = _setpoint.leso_enable_roll;
 		leso_enable[1] = _setpoint.leso_enable_pitch;
 		leso_enable[2] = _setpoint.leso_enable_yaw;
@@ -1284,6 +1286,32 @@ MulticopterIndiTiltrotor::Run()
 	}
 
 	_alt_accum += dt;
+
+	// INIS DIZISI (Adim 153, madde B0). Irtifa dongusunden ONCE kosar cunku
+	// urettigi sey onun HEDEFIDIR. Bayrak kalkinca disaridan gelen z_sp yok
+	// sayilir -- profili artik modul yurutur.
+	//
+	// DIKEY ITKI bir onceki tikin _u_actual'indan hesaplanir: bu blok
+	// tahsisattan ONCE kosuyor, yani bu tikin komutu henuz yok. Bir tik
+	// gecikme temas olcutu icin onemsiz (olcut LAND_TOUCH_DWELL = 1.5 s
+	// kesintisiz sure istiyor, tek tik 2.5 ms).
+	float land_ctz = NAN;
+
+	if (_u_actual_seeded) {
+		land_ctz = 0.f;
+
+		for (int i = 0; i < 3; i++) {
+			land_ctz += _u_actual(i) * cosf(_u_actual(i + 3));
+		}
+	}
+
+	_land_z_cmd = tiltrotor_indi::landingSequence(req_land, lpos.z, _z_datum, land_ctz,
+			_land_state, _land_step_timer, _land_touch_dwell,
+			_land_stall_dwell, _land_z_step, dt);
+
+	if (req_land && _land_state != tiltrotor_indi::LandState::IDLE) {
+		z_sp = _land_z_cmd;
+	}
 
 	if (_alt_accum >= ALT_TS - 1e-6f) {
 		// Vertical channel, in descending order of what is still measurable
@@ -2034,6 +2062,8 @@ MulticopterIndiTiltrotor::Run()
 	for (int i = 0; i < N_ACT; i++) { status.u_actual[i] = _u_actual(i); }
 
 	status.codegen_du_diff = _cg_du_diff;
+		status.land_state = (uint8_t)_land_state;
+		status.land_z_cmd = _land_z_cmd;
 	status.qbar = qbar;
 
 	status.gain_schedule_smooth = sched.smooth;
@@ -2225,6 +2255,8 @@ int MulticopterIndiTiltrotor::custom_command(int argc, char *argv[])
 		// past FW_TRIGGER_V/FW_MIN_ALT -- see the entry gate in Run(). ONE-WAY
 		// DOOR: there is no corresponding disable path once GLIDE has started.
 		sp.fw_enable = (argc >= 13) ? (atoi(argv[12]) != 0) : false;
+		// INIS DIZISI (Adim 153): bayrak kalkinca modul z_sp'yi KENDI uretir.
+		sp.land_enable = (argc >= 14) ? (atoi(argv[13]) != 0) : false;
 
 		// BUG FIX 2026-07-27 (step 11): this Publication used to be a plain
 		// function-local, so its destructor ran orb_unadvertise() the instant

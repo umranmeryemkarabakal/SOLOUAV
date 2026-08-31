@@ -238,6 +238,15 @@ private:
 	// AGL = _z_datum - lpos.z. NAN until a datum is captured, which closes the
 	// land_diff gate -- the same safe side the alt_ok check already takes.
 	float _z_datum{NAN};
+
+	// INIS DIZISI (Adim 153, madde B0). Profil artik MODULDE; oncesinde
+	// PC tarafindaki run_mission_test.py'deydi ve o yol kartta yok.
+	tiltrotor_indi::LandState _land_state{tiltrotor_indi::LandState::IDLE};
+	float _land_step_timer{0.f};
+	float _land_touch_dwell{0.f};
+	float _land_stall_dwell{0.f};
+	float _land_z_step{0.f};
+	float _land_z_cmd{0.f};
 	bool _z_datum_reported{false};
 
 	// --- second contact criterion (step 118) ---

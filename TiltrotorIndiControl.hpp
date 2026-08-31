@@ -1290,4 +1290,109 @@ inline matrix::Vector<float, N_ACT> hoverTrim()
 	return u_trim;
 }
 
+// ---------------------------------------------------------------------------
+// INIS DIZISI (2026-08-31, Adim 153 -- madde B0)
+// ---------------------------------------------------------------------------
+// forwardTransition()/backTransition() ile AYNI SEKIL: saf fonksiyon, durumu
+// disaridan referansla alir, hicbir yere yazmaz. Boylece MATLAB tarafinda
+// birebir ayni aritmetikle sinanabilir.
+//
+// NEDEN VAR: bu profil PC tarafindaki run_mission_test.py icindeydi ve o
+// betik hedefi POSIX kabuk istemcisiyle gonderiyordu -- gercek kartta olmayan
+// bir yol (madde B0). Sayilar oradan BIREBIR tasindi; gerekceleri
+// TiltrotorIndiParams.hpp'deki LAND_* blogunda.
+//
+// GIRDILER
+//   enable   : setpoint.land_enable
+//   z        : lpos.z (NED, asagi pozitif)
+//   z_datum  : YER referansi -- modulun disarm'da yakaladigi deger. Betikteki
+//              `z0` ile ayni sey; ikisi de arac YERDEYKEN okunur.
+//   ctz      : gerceklesen DIKEY itki toplami [N] (temas olcutu icin)
+//
+// CIKTI: z_cmd (irtifa dongusune verilecek hedef). enable=false iken IDLE'a
+// doner ve z_cmd = z (tut).
+//
+// MODUL DISARM ETMEZ. TOUCHDOWN yalnizca "temas olustu" der; arming karari
+// disaridadir. PX4'un kendi mimarisi de boyle ayirir (land_detector bildirir,
+// commander karar verir) ve profili tasimak arming yetkisini tasimak degildir.
+inline float landingSequence(bool enable, float z, float z_datum, float ctz,
+			     LandState &state, float &step_timer, float &touch_dwell,
+			     float &stall_dwell, float &z_step, float dt)
+{
+	if (!enable || !PX4_ISFINITE(z) || !PX4_ISFINITE(z_datum)) {
+		state = LandState::IDLE;
+		step_timer = 0.f;
+		touch_dwell = 0.f;
+		stall_dwell = 0.f;
+		z_step = z;
+		return z;
+	}
+
+	// AGL, DATUMA GORE (Adim 117'nin dersi): ham -z DEGIL. Olculen datum
+	// ofseti kosumdan kosuma -1.0 .. +0.9 m arasinda degisiyor ve mutlak bir
+	// esik o yuzden guvenilmez.
+	const float agl = z_datum - z;
+
+	// TEMAS: dikey itki agirligin altinda VE bu kesintisiz sursun.
+	const bool low_thrust = PX4_ISFINITE(ctz)
+				&& (ctz < LAND_GROUND_THRUST_FRAC * MASS * GRAVITY);
+	touch_dwell = low_thrust ? (touch_dwell + dt) : 0.f;
+	const bool contact = (touch_dwell >= LAND_TOUCH_DWELL) || (agl < LAND_DONE_ALT);
+
+	switch (state) {
+	case LandState::IDLE:
+		state = LandState::DESCEND;
+		z_step = z;
+		step_timer = 0.f;
+		stall_dwell = 0.f;
+		break;
+
+	case LandState::DESCEND: {
+			// KADEME: hedef her LAND_STEP_S'de bir LAND_STEP_M asagi iner.
+			// Surekli rampa DENENDI VE GERI ALINDI (Adim 134): inis hizini
+			// dusurdu ama salinim frekansi degismedi (0.417 -> 0.419 Hz) ve
+			// pitch tepe-tepe 7.96 -> 11.00 deg KOTULESTI. Yani salinim
+			// profilin uyarmasi degil, sistemin kendi modu.
+			step_timer += dt;
+
+			if (step_timer >= LAND_STEP_S) {
+				step_timer = 0.f;
+				z_step += LAND_STEP_M;
+			}
+
+			// TAKILMA: irtifa ilerlemiyorsa say. Modul bir sey YAPMAZ --
+			// yalnizca durumu tasir; karar disaridadir.
+			stall_dwell = (fabsf(z_step - z) > LAND_STEP_M + LAND_STALL_DZ)
+				      ? (stall_dwell + dt) : 0.f;
+
+			if (agl < LAND_FLARE_ALT) {
+				state = LandState::FLARE;
+			}
+
+			if (contact) {
+				state = LandState::TOUCHDOWN;
+			}
+
+			return z_step;
+		}
+
+	case LandState::FLARE:
+		// Hedef YERIN ALTINA surulur: "0.30 m'de asili kal" demek, aracin
+		// yer etkisinde takilmasi demekti (2026-08-28 olcumu). Irtifa
+		// dongusu boylece temasa kadar alcalmayi surdurur.
+		if (contact) {
+			state = LandState::TOUCHDOWN;
+		}
+
+		return z_datum + LAND_TOUCH_Z;
+
+	case LandState::TOUCHDOWN:
+	default:
+		// Temas olustu. Hedef yerde tutulur; disarm karari disarida.
+		return z_datum + LAND_TOUCH_Z;
+	}
+
+	return z_step;
+}
+
 } // namespace tiltrotor_indi

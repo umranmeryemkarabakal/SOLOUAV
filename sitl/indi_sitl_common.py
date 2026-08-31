@@ -53,7 +53,7 @@ class Px4Client:
     def set_setpoint(self, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0,
                       fx: float = 0.0, z_sp: float = 0.0,
                       leso_enable: tuple[bool, bool, bool] = (True, True, False),
-                      pos_hold: bool = False) -> str:
+                      pos_hold: bool = False, land: bool = False) -> str:
         """One-shot publish of tiltrotor_indi_setpoint via the module's
         `test_sp` custom_command.
 
@@ -78,6 +78,12 @@ class Px4Client:
         lr, lp, ly = (1 if v else 0 for v in leso_enable)
         args = ["test_sp", f"{roll}", f"{pitch}", f"{yaw}", f"{fx}", f"{z_sp}",
                 f"{lr}", f"{lp}", f"{ly}", "1" if pos_hold else "0"]
+        # INIS DIZISI (2026-08-31, Adim 153 -- madde B0). land=True iken profili
+        # MODUL yurutur ve z_sp yok sayilir. Once bu betikteydi; o yol POSIX
+        # kabuk istemcisine baglidir ve gercek kartta yoktur.
+        # Ara argumanlar (bt/ft/fw) atlanamaz, cunku konumsal.
+        if land:
+            args += ["0", "0", "0", "1"]
         return self._run("mc_indi_tiltrotor", args)
 
     def tiltceil(self, deg: float) -> str:

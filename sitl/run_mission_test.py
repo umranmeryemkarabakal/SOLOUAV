@@ -130,11 +130,12 @@ def main() -> int:
         # eksikse false sayiyor. Yani SABIT KANAT MODU (butun rotorlar kesilir,
         # tilt TILT_MAX'a slew eder) depodaki hicbir Python testinde HIC
         # calismamisti -- kod bozulmus degildi, komut hic gelmiyordu.
-        def send(pos_hold=False, bt=False, ft=False, fw=False, z=None, yaw=None):
+        def send(pos_hold=False, bt=False, ft=False, fw=False, z=None, yaw=None,
+                 land=False):
             args = ["test_sp", "0.0", "0.0", f"{yaw0 if yaw is None else yaw}", "0.0",
                     f"{z_sp if z is None else z}", "1", "1", "0",
                     "1" if pos_hold else "0", "1" if bt else "0", "1" if ft else "0",
-                    "1" if fw else "0"]
+                    "1" if fw else "0", "1" if land else "0"]
             return px4._run("mc_indi_tiltrotor", args)
 
         def snap():
@@ -425,7 +426,18 @@ def main() -> int:
             # sifirlayip duruyordu (fz_sp ~ -50 N, yani agirligi tasimaya devam).
             # Sonuc: betik takilmayi gorup motorlari kesiyor ve arac 0.8 m'den
             # DUSUYOR -- olculen carpma 3.0 ve 5.8 m/s. Gercek arac bunu kaldirmaz.
-            z_cmd = z0 + TOUCH_Z if z_now > z0 - FLARE_ALT else z_now + 1.0
+            # PROFIL ARTIK MODULDE (2026-08-31, Adim 153 -- madde B0).
+            # Bu satir eskiden hedefi BURADA uretiyordu:
+            #     z_cmd = z0 + TOUCH_Z if z_now > z0 - FLARE_ALT else z_now + 1.0
+            # Sorun, o hedefin `px4-mc_indi_tiltrotor test_sp` POSIX KABUK
+            # ISTEMCISIYLE gonderilmesiydi -- yalnizca SITL'de var olan bir yol.
+            # Gercek kartta karsiligi yok ve flight_mode_manager/mc_pos_control
+            # bu airframe'de bilerek durduruldugu icin PX4'un land modu da yok:
+            # kart flash edilse otonom inis OLMAZDI.
+            # Simdi `land=True` tek bayragi gidiyor, kademeleri/flare'i modulun
+            # landingSequence()'i yurutuyor -- ft_enable/bt_enable ile ayni kalip.
+            # SAYILAR AYNI (LAND_STEP_M/LAND_FLARE_ALT/LAND_TOUCH_Z), buradan
+            # birebir tasindi. Betik artik yalnizca IZLIYOR.
             # YAW HEDEFI SON METREDE SERBEST BIRAKILIR (2026-08-28). Olculdu:
             # yere yakin yaw RMS'i 20.1x artiyor (roll 4.1x, pitch 3.1x), tepe
             # 6.44 rad/s. Sebep, kovalanamayan bir yaw hatasi: temas/yer etkisi
@@ -448,7 +460,7 @@ def main() -> int:
             # olmadigi icin dogru cozum esigi yukseltmek degil, KALDIRMAK.
             _, _, yd = px4.attitude_euler_deg()
             yaw_hold = math.radians(yd) if math.isfinite(yd) else None
-            send(pos_hold=True, z=z_cmd, yaw=yaw_hold)
+            send(pos_hold=True, land=True, yaw=yaw_hold)
             time.sleep(1.5)
             z_new = px4.local_position().get("z", z_now)
             stalled = stalled + 1 if abs(z_new - z_now) < 0.05 else 0

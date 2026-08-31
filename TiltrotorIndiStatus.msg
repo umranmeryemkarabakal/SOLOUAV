@@ -40,3 +40,11 @@ float32 fw_tilt
 # CEVRIMDISI tekrar oynatmayla yapmisti (ort 0.042 N); bu alan onu GERCEK ucus
 # dongusunde, kapali cevrim girdileriyle olcer.
 float32 codegen_du_diff
+
+# INIS DURUM MAKINESI (Adim 153): 0=IDLE 1=DESCEND 2=FLARE 3=TOUCHDOWN.
+# TOUCHDOWN, "temas olustu, disarm edilebilir" demektir -- modul KENDI
+# DISARM ETMEZ. Bu bilerek: PX4'un kendi mimarisinde de land_detector
+# bildirir, commander karar verir. Profili moduile tasimak, arming
+# yetkisini de ona vermek anlamina gelmemeli.
+uint8 land_state
+float32 land_z_cmd
