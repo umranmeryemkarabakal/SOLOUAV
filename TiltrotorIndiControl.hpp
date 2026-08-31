@@ -1395,4 +1395,192 @@ inline float landingSequence(bool enable, float z, float z_datum, float ctz,
 	return z_step;
 }
 
+// ---------------------------------------------------------------------------
+// GOREV DIZICISI (2026-08-31, Adim 154 -- madde B0'in kalan yarisi)
+// ---------------------------------------------------------------------------
+// Adim 153 inis PROFILINI tasidi; bu, BAYRAKLARI da tasir. Tek `enable` ile
+// tam gorev modulden yurur: tirmanis -> hover -> ileri gecis -> seyir ->
+// sabit kanat -> geri gecis -> oturma -> inis.
+//
+// Dizici mevcut durum makinelerinin USTUNDE durur; hicbirinin isini yapmaz,
+// yalnizca "hangi bayrak ne zaman" der. Gecisler yine forwardTransition(),
+// backTransition(), fixedWing*() ve landingSequence() tarafindan yurutulur.
+//
+// GECISLER OLAY TABANLI (betikteki wait_until ile ayni): ft_state==CRUISE,
+// bt_state==HANDOFF, fw_state==ACTIVE, land_state==TOUCHDOWN. Yalnizca seyir
+// sureleri ve hover oturmasi zamanlidir -- onlar bir olayi degil bir SUREYI
+// bekler.
+//
+// TIMEOUT: bir olay MSN_PHASE_TIMEOUT_S icinde gelmezse dizici GERI GECISE
+// duser (BACK). Bu bilerek en guvenli yon: her arizada arac hover'a doner ve
+// oradan iner. Ileri gitmek ya da oldugu yerde donmak degil.
+//
+// MODUL DISARM ETMEZ (Adim 153'teki ayni ayrim). DONE yalnizca "gorev bitti,
+// arac yerde" der.
+inline void missionSequencer(bool enable, float agl, float v_h,
+			     FtState ft, BtState bt, FwState fw, LandState land,
+			     MissionState &state, float &phase_timer, float dt,
+			     bool &req_pos_hold, bool &req_ft, bool &req_bt,
+			     bool &req_fw, bool &req_land, float &z_sp_out,
+			     float z_datum, float z_now)
+{
+	if (!enable) {
+		state = MissionState::IDLE;
+		phase_timer = 0.f;
+		req_pos_hold = false;
+		req_ft = false;
+		req_bt = false;
+		req_fw = false;
+		req_land = false;
+		z_sp_out = z_now;
+		return;
+	}
+
+	phase_timer += dt;
+
+	// Varsayilanlar: her evre yalnizca kendi bayragini kaldirir.
+	//
+	// pos_hold VARSAYILAN OLARAK KAPALI, VE BU BILEREK (2026-08-31 duzeltmesi).
+	// Ilk yazimda her evrede aciktı; SITL'de olculdu ve GOREVIN TAMAMINI
+	// bozdu: pozisyon dongusu ileri gecisle guresti, ft_state CRUISE'a HIC
+	// ulasmadi, FWD/BACK/SETTLE ucu de 60 s zaman asimina dustu ve arac
+	// 39 m'de 7-15 m/s ile ucup gitti. Betik de zaten gecis evrelerinde
+	// pos_hold GONDERMIYOR (send(ft=True), pos_hold varsayilani False).
+	// Hover tutan evreler onu ACIKCA acar.
+	req_pos_hold = false;
+	req_ft = false;
+	req_bt = false;
+	req_fw = false;
+	req_land = false;
+	z_sp_out = z_datum - MSN_CLIMB_ALT;
+
+	const bool timed_out = phase_timer > MSN_PHASE_TIMEOUT_S;
+
+	switch (state) {
+	case MissionState::IDLE:
+		state = MissionState::CLIMB;
+		phase_timer = 0.f;
+		break;
+
+	case MissionState::CLIMB:
+		req_pos_hold = true;
+
+		if (fabsf(agl - MSN_CLIMB_ALT) < MSN_CLIMB_TOL) {
+			state = MissionState::HOVER;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::HOVER:
+		req_pos_hold = true;
+
+		if (phase_timer >= MSN_SETTLE_S) {
+			state = MissionState::FWD;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::FWD:
+		req_ft = true;
+
+		if (ft == FtState::CRUISE) {
+			state = MissionState::CRUISE;
+			phase_timer = 0.f;
+
+		} else if (timed_out) {
+			state = MissionState::BACK;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::CRUISE:
+		req_ft = true;
+
+		if (phase_timer >= MSN_CRUISE_S) {
+			state = MSN_FW_PHASE ? MissionState::FW : MissionState::BACK;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::FW:
+		// ft BAYRAGI KALKIK KALMALI: sabit kanat giris kapisi
+		// _ft_state == FtState::CRUISE istiyor (fixedWingTransition()).
+		req_ft = true;
+		req_fw = true;
+
+		if (fw == FwState::ACTIVE) {
+			state = MissionState::FW_CRUISE;
+			phase_timer = 0.f;
+
+		} else if (timed_out) {
+			state = MissionState::BACK;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::FW_CRUISE:
+		req_ft = true;
+		req_fw = true;
+
+		if (phase_timer >= MSN_FW_CRUISE_S) {
+			state = MissionState::BACK;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::BACK:
+		// ft DUSER, bt KALKAR (betikteki 4. adimla ayni).
+		req_bt = true;
+
+		if (bt == BtState::HANDOFF) {
+			state = MissionState::SETTLE;
+			phase_timer = 0.f;
+
+		} else if (timed_out) {
+			// Geri gecis de tikandiysa yapilacak tek sey inmek.
+			state = MissionState::SETTLE;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::SETTLE:
+		req_pos_hold = true;
+
+		// Yatay hiz sonmeden inise gecmek, araci yana suruklenirken
+		// indirmek demektir.
+		if (v_h < MSN_LAND_VH || timed_out) {
+			state = MissionState::LAND;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::LAND:
+		req_pos_hold = true;
+		req_land = true;
+		z_sp_out = z_now;   // profili landingSequence uretir
+
+		if (land == LandState::TOUCHDOWN) {
+			state = MissionState::DONE;
+			phase_timer = 0.f;
+		}
+
+		break;
+
+	case MissionState::DONE:
+	default:
+		req_pos_hold = true;
+		req_land = true;
+		z_sp_out = z_now;
+		break;
+	}
+}
+
 } // namespace tiltrotor_indi

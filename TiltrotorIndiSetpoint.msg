@@ -27,3 +27,9 @@ bool fw_enable
 # olmayan bir yol. Bayrak kalkinca modul z_sp'yi KENDI uretir; disaridan
 # gelen z_sp yok sayilir.
 bool land_enable
+
+# TAM GOREV (2026-08-31, Adim 154 -- madde B0). Bu bayrak kalkinca dizici
+# butun evreleri KENDI yurutur: tirmanis, ileri gecis, seyir, sabit kanat,
+# geri gecis, oturma, inis. Digerleri (ft/bt/fw/land) o sirada YOK SAYILIR
+# -- onlari da dizici uretir. Tek tek bayraklar elle sinama icin kalir.
+bool mission_enable

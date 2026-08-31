@@ -904,6 +904,39 @@ enum class FtState : int32_t { IDLE = 0, RAMP = 1, CRUISE = 2 };
 //                  zemine gommeye calisiyordu (2026-08-29)
 enum class LandState : int32_t { IDLE = 0, DESCEND = 1, FLARE = 2, TOUCHDOWN = 3 };
 
+// ---------------------------------------------------------------------------
+// GOREV DIZICISI (2026-08-31, Adim 154 -- madde B0'in kalan yarisi)
+// ---------------------------------------------------------------------------
+// Adim 153 inis PROFILINI moduile tasidi, ama bayraklari (ft/bt/fw/land) hala
+// disaridan biri kaldirmak zorundaydi. Bu blok onu da kapatir: tek bir
+// `mission_enable` ile TAM GOREV modulden yurur.
+//
+// Kalip degismedi -- dizici, mevcut durum makinelerinin USTUNDE durur ve
+// yalnizca "hangi bayrak, ne zaman" sorusunu yanitlar. Gecisleri hala
+// forwardTransition()/backTransition()/fixedWing*/landingSequence() yurutur.
+//
+// GECIS KOSULLARI ZAMANLAYICI DEGIL, OLAY: betikteki `wait_until` cagrilariyla
+// ayni sey. Yalnizca CRUISE/FW_CRUISE sureleri ve oturma bekleyisi zamanlidir,
+// cunku onlar bir OLAYI degil bir SUREYI bekliyor.
+enum class MissionState : int32_t {
+	IDLE = 0, CLIMB = 1, HOVER = 2, FWD = 3, CRUISE = 4,
+	FW = 5, FW_CRUISE = 6, BACK = 7, SETTLE = 8, LAND = 9, DONE = 10
+};
+
+// Sayilar run_mission_test.py'den BIREBIR tasindi (CLIMB_M, SETTLE_S,
+// CRUISE_S, FW_CRUISE_S). Yeniden ayarlanmadi.
+static constexpr float MSN_CLIMB_ALT = 40.0f;    // m AGL, FT_MIN_ALT=20'nin ustu
+static constexpr float MSN_CLIMB_TOL = 2.0f;     // m, tirmanis tamam sayilir
+static constexpr float MSN_SETTLE_S = 12.0f;     // s, hover oturma
+static constexpr float MSN_CRUISE_S = 15.0f;     // s, tilt-seyir
+static constexpr float MSN_FW_CRUISE_S = 20.0f;  // s, sabit kanat
+static constexpr float MSN_LAND_VH = 1.0f;       // m/s, altinda inise gecilir
+static constexpr float MSN_PHASE_TIMEOUT_S = 60.0f;  // s, olay beklerken ust sinir
+
+// SABIT KANAT AYAGI acilabilir/kapatilabilir. Betikte INDI_FW ile ayni rol;
+// kapaliyken gorev CRUISE'dan dogrudan BACK'e gecer.
+static constexpr bool MSN_FW_PHASE = true;
+
 static constexpr float LAND_STEP_M = 1.0f;      // m, her kademede inilecek
 static constexpr float LAND_STEP_S = 1.5f;      // s, kademeler arasi bekleme
 static constexpr float LAND_FLARE_ALT = 1.5f;   // m AGL, altinda temas komut edilir

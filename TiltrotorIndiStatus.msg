@@ -48,3 +48,7 @@ float32 codegen_du_diff
 # yetkisini de ona vermek anlamina gelmemeli.
 uint8 land_state
 float32 land_z_cmd
+
+# GOREV DIZICISI (Adim 154): 0=IDLE 1=CLIMB 2=HOVER 3=FWD 4=CRUISE
+# 5=FW 6=FW_CRUISE 7=BACK 8=SETTLE 9=LAND 10=DONE
+uint8 mission_state

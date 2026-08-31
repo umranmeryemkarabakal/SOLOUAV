@@ -761,6 +761,7 @@ MulticopterIndiTiltrotor::Run()
 	bool req_ft = false;
 	bool req_fw = false;
 	bool req_land = false;
+	bool req_mission = false;
 
 	if (_setpoint_valid) {
 		roll_sp = _setpoint.roll_sp;
@@ -769,6 +770,7 @@ MulticopterIndiTiltrotor::Run()
 		fx_sp = _setpoint.fx_sp;
 		z_sp = _setpoint.z_sp;
 		req_land = _setpoint.land_enable;
+		req_mission = _setpoint.mission_enable;
 		leso_enable[0] = _setpoint.leso_enable_roll;
 		leso_enable[1] = _setpoint.leso_enable_pitch;
 		leso_enable[2] = _setpoint.leso_enable_yaw;
@@ -925,6 +927,34 @@ MulticopterIndiTiltrotor::Run()
 			_man_z_sp = math::constrain(_man_z_sp, lpos.z - MAN_Z_LEASH, lpos.z + MAN_Z_LEASH);
 			z_sp = _man_z_sp;
 		}
+	}
+
+	// GOREV DIZICISI (Adim 154, madde B0'in kalan yarisi).
+	//
+	// BURADA KOSMAK ZORUNDA: urettigi bayraklari ASAGIDAKI durum makineleri
+	// tuketiyor -- req_pos_hold satir ~1214'te, req_ft/req_bt ~1022-1177'de.
+	// ILK YAZIMDA inis dizisinin yanina (satir ~1290) konmustu ve OLCULDU:
+	// bayraklari yalnizca inis gordu, FT/BT/pos_hold hicbirini gormedi.
+	// Sonuc: arac tirmanista 15 m/s'ye ulasti, ft_state CRUISE'a ulasamadi
+	// ve FWD/BACK/SETTLE ucu de 60 s zaman asimina dustu (iki kosum).
+	//
+	// Durum makinelerinin BIR ONCEKI tik degerlerini okur; 400 Hz'de bir tik
+	// gecikme bir denetleyici icin onemsizdir.
+	if (req_mission) {
+		const float msn_agl = _z_datum - lpos.z;
+		const float msn_vh = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
+		float msn_z_sp = z_sp;
+
+		tiltrotor_indi::missionSequencer(true, msn_agl, msn_vh,
+						 _ft_state, _bt_state, _fw_state, _land_state,
+						 _mission_state, _mission_timer, dt,
+						 req_pos_hold, req_ft, req_bt, req_fw, req_land,
+						 msn_z_sp, _z_datum, lpos.z);
+		z_sp = msn_z_sp;
+
+	} else {
+		_mission_state = tiltrotor_indi::MissionState::IDLE;
+		_mission_timer = 0.f;
 	}
 
 	// Degraded: do not push a body-x force when you no longer know where you are.
@@ -2063,6 +2093,7 @@ MulticopterIndiTiltrotor::Run()
 
 	status.codegen_du_diff = _cg_du_diff;
 		status.land_state = (uint8_t)_land_state;
+		status.mission_state = (uint8_t)_mission_state;
 		status.land_z_cmd = _land_z_cmd;
 	status.qbar = qbar;
 
@@ -2257,6 +2288,8 @@ int MulticopterIndiTiltrotor::custom_command(int argc, char *argv[])
 		sp.fw_enable = (argc >= 13) ? (atoi(argv[12]) != 0) : false;
 		// INIS DIZISI (Adim 153): bayrak kalkinca modul z_sp'yi KENDI uretir.
 		sp.land_enable = (argc >= 14) ? (atoi(argv[13]) != 0) : false;
+		// TAM GOREV (Adim 154): tek bayrakla butun evreler.
+		sp.mission_enable = (argc >= 15) ? (atoi(argv[14]) != 0) : false;
 
 		// BUG FIX 2026-07-27 (step 11): this Publication used to be a plain
 		// function-local, so its destructor ran orb_unadvertise() the instant

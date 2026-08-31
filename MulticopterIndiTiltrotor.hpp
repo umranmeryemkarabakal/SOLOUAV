@@ -242,6 +242,10 @@ private:
 	// INIS DIZISI (Adim 153, madde B0). Profil artik MODULDE; oncesinde
 	// PC tarafindaki run_mission_test.py'deydi ve o yol kartta yok.
 	tiltrotor_indi::LandState _land_state{tiltrotor_indi::LandState::IDLE};
+
+	// GOREV DIZICISI (Adim 154, madde B0). Tek bayrakla tam gorev.
+	tiltrotor_indi::MissionState _mission_state{tiltrotor_indi::MissionState::IDLE};
+	float _mission_timer{0.f};
 	float _land_step_timer{0.f};
 	float _land_touch_dwell{0.f};
 	float _land_stall_dwell{0.f};
