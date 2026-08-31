@@ -1,0 +1,427 @@
+
+______  __   __    ___ 
+| ___ \ \ \ / /   /   |
+| |_/ /  \ V /   / /| |
+|  __/   /   \  / /_| |
+| |     / /^\ \ \___  |
+\_|     \/   \/     |_/
+
+px4 starting.
+
+INFO  [px4] startup script: /bin/sh etc/init.d-posix/rcS 0
+INFO  [init] found model autostart file as SYS_AUTOSTART=4023
+INFO  [param] selected parameter default file parameters.bson
+INFO  [param] importing from 'parameters.bson'
+INFO  [parameters] BSON document size 316 bytes, decoded 316 bytes (INT32:13, FLOAT:3)
+INFO  [param] selected parameter backup file parameters_backup.bson
+INFO  [dataman] data manager file './dataman' size is 7872608 bytes
+INFO  [init] Gazebo simulator
+INFO  [init] starting gazebo with world: /home/umran/PX4-Autopilot/Tools/simulation/gz/worlds/default.sdf
+WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin.
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="imu_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L177]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="air_pressure_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L236]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="magnetometer_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L249]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="navsat_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L271]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+INFO  [lockstep_scheduler] setting initial absolute time to 8000 us
+INFO  [gz_bridge] world: default, model name: tiltrotor_indi_0, simulation model: tiltrotor_indi
+INFO  [gz_bridge] Requested Model Position: 0,0,0,0,0,0
+INFO  [gz_bridge] Model position z is less or equal 0.0, moving upwards
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="imu_sensor"]/gz_frame_id:<data-string>:L186]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="air_pressure_sensor"]/gz_frame_id:<data-string>:L199]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="magnetometer_sensor"]/gz_frame_id:<data-string>:L221]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="navsat_sensor"]/gz_frame_id:<data-string>:L226]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+WARN  [vehicle_angular_velocity] no gyro selected, using sensor_gyro:0 1310988
+INFO  [commander] LED: open /dev/led0 failed (22)
+INFO  [tone_alarm] home set
+INFO  [uxrce_dds_client] init UDP agent IP:127.0.0.1, port:8888
+INFO  [mavlink] mode: Normal, data rate: 4000000 B/s on udp port 18570 remote port 14550
+INFO  [mavlink] mode: Onboard, data rate: 4000000 B/s on udp port 14580 remote port 14540
+INFO  [mavlink] mode: Onboard, data rate: 4000 B/s on udp port 14280 remote port 14030
+INFO  [mavlink] mode: Gimbal, data rate: 400000 B/s on udp port 13030 remote port 13280
+INFO  [logger] logger started (mode=all)
+INFO  [logger] Start file log (type: full)
+INFO  [logger] [logger] ./log/2026-08-28/17_56_12.ulg	
+INFO  [logger] Opened full log file: ./log/2026-08-28/17_56_12.ulg
+INFO  [mavlink] MAVLink only on localhost (set param MAV_{i}_BROADCAST = 1 to enable network)
+INFO  [mavlink] MAVLink only on localhost (set param MAV_{i}_BROADCAST = 1 to enable network)
+INFO  [px4] Startup script returned successfully
+INFO  [commander] [32mReady for takeoff![0m
+INFO  [commander] Armed by internal command	
+INFO  [tone_alarm] arming warning
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.162 -0.987] nu_des=[0.01 0.02 -0.25 -2.96 -0.24]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0832 dmin0=-18.3233 dmax0=26.6767
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[0.000 -0.650 0.060 0.000 -1.000] G5=[-0.744 -0.868 -0.000 12.403 0.000]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0348 0.0000] dmax25=[32.5965 0.0012] nu_yaw=-0.250
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.32 du0=0.0832 pin0=0.002 a0=[-0.020 0.011 -0.000 -0.000 0.090]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.32 du1=0.1278 pin1=0.004 a1=[0.020 0.011 0.000 -0.000 0.093]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.250 ach2=-0.010 r=-0.00 wsp2=-0.50 ddelta=[0.0012 0.0000 0.0000]
+INFO  [commander] Takeoff detected	
+INFO  [mc_indi_tiltrotor] pos_hold: holding x=-0.26 y=0.07
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.197 0.015 0.177 -0.984] nu_des=[0.01 0.03 -0.19 -1.63 1.05]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.3393 dmin0=-22.8869 dmax0=22.1131
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.920 -1.046 -0.003 15.340 0.042]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3441 -0.0028] dmax25=[29.6595 -0.0016] nu_yaw=-0.194
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-22.89 du0=-0.3393 pin0=0.068 a0=[-0.030 0.018 -0.000 -0.000 -0.395]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-23.26 du1=-0.3189 pin1=0.038 a1=[0.029 0.018 0.000 -0.000 -0.404]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.015 ach2=-0.017 r=-0.22 wsp2=-0.50 ddelta=[-0.0086 -0.0113 -0.0007]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.193 0.008 0.202 -0.979] nu_des=[-0.01 0.18 -0.01 -1.37 0.06]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0153 dmin0=-19.5670 dmax0=25.4330
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.795 -0.920 -0.001 13.243 0.011]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1624 -0.0008] dmax25=[31.7570 0.0003] nu_yaw=-0.013
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.57 du0=0.0153 pin0=-0.075 a0=[0.010 0.103 -0.000 -0.000 -0.023]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-20.06 du1=0.0393 pin1=-0.033 a1=[-0.010 0.106 0.000 -0.000 -0.024]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.193 0.008 0.202 -0.979] nu_des=[0.02 0.14 0.04 -1.33 0.09]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0645 dmin0=-19.1628 dmax0=25.8372
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.815 -0.941 -0.001 13.578 0.015]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2264 -0.0011] dmax25=[31.4221 0.0001] nu_yaw=0.035
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.16 du0=0.0645 pin0=0.053 a0=[-0.037 0.083 0.000 -0.000 -0.034]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-20.05 du1=0.1026 pin1=0.017 a1=[0.035 0.085 -0.000 -0.000 -0.035]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.011 ach2=-0.002 r=-0.50 wsp2=-0.50 ddelta=[-0.0096 -0.0084 -0.0026]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.013 0.185 -0.983] nu_des=[-0.01 0.14 0.03 -1.06 0.05]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0078 dmin0=-19.9783 dmax0=25.0217
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.779 -0.886 -0.002 12.991 0.036]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[-0.1143 -0.0026] dmax25=[32.0091 -0.0007] nu_yaw=0.033
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.98 du0=0.0078 pin0=-0.072 a0=[0.011 0.085 0.001 0.000 -0.017]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.54 du1=0.0141 pin1=-0.033 a1=[-0.010 0.077 -0.001 -0.001 -0.017]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.197 0.015 0.178 -0.984] nu_des=[0.04 0.25 0.02 -0.73 0.16]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0660 dmin0=-19.1451 dmax0=25.8549
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.808 -0.924 -0.002 13.460 0.028]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3734 -0.0021] dmax25=[31.5405 -0.0009] nu_yaw=0.019
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.15 du0=0.0660 pin0=0.060 a0=[-0.079 0.145 0.000 -0.000 -0.060]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.81 du1=0.1841 pin1=0.022 a1=[0.076 0.148 -0.000 -0.000 -0.061]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.012 ach2=-0.024 r=-0.52 wsp2=-0.50 ddelta=[0.0108 0.0096 -0.0018]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.193 0.008 0.203 -0.979] nu_des=[0.01 0.11 -0.01 -1.52 0.35]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0624 dmin0=-18.1484 dmax0=26.8516
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.004 -1.000] G5=[-0.718 -0.808 -0.003 11.959 0.045]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2298 -0.0027] dmax25=[33.0411 -0.0027] nu_yaw=-0.006
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.15 du0=-0.0624 pin0=0.020 a0=[-0.017 0.067 -0.000 -0.000 -0.133]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.02 du1=-0.0447 pin1=0.006 a1=[0.016 0.068 0.000 -0.000 -0.136]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.189 0.001 0.228 -0.974] nu_des=[0.02 -0.17 0.03 -2.28 0.09]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0987 dmin0=-17.2948 dmax0=27.7052
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.705 -0.807 -0.001 11.749 0.023]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 8.9] du25=[0.1221 0.0004] dmax25=[33.2512 0.0010] nu_yaw=0.027
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-17.29 du0=-0.0987 pin0=0.078 a0=[-0.038 -0.104 0.000 0.001 -0.036]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.01 du1=-0.0580 pin1=0.040 a1=[0.035 -0.095 -0.001 -0.001 -0.036]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.073 ach2=0.020 r=-0.47 wsp2=-0.12 ddelta=[-0.0060 0.0072 -0.0009]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.191 0.005 0.215 -0.977] nu_des=[-0.01 0.08 0.10 -2.52 0.09]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0129 dmin0=-17.3691 dmax0=27.6309
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.663 -0.768 -0.000 11.049 0.008]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0948 -0.0007] dmax25=[33.9507 0.0005] nu_yaw=0.098
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-17.37 du0=0.0129 pin0=-0.017 a0=[0.018 0.045 0.000 -0.000 -0.033]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.46 du1=-0.0421 pin1=-0.036 a1=[-0.018 0.046 -0.000 -0.000 -0.034]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.013 0.183 -0.983] nu_des=[0.00 0.28 0.01 -1.96 -0.00]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0943 dmin0=-18.1838 dmax0=26.8162
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.697 -0.807 -0.001 11.622 0.010]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2696 -0.0008] dmax25=[33.3779 0.0003] nu_yaw=0.009
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.18 du0=0.0943 pin0=-0.068 a0=[-0.004 0.165 0.000 -0.000 0.002]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.32 du1=0.1234 pin1=-0.049 a1=[0.004 0.167 -0.000 -0.000 0.002]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.136 ach2=-0.051 r=0.11 wsp2=0.17 ddelta=[0.0036 -0.0072 0.0002]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.163 -0.987] nu_des=[-0.01 0.15 -0.15 -1.13 -0.01]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0645 dmin0=-18.8765 dmax0=26.1235
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.741 -0.856 -0.001 12.354 0.014]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1330 -0.0011] dmax25=[32.6463 0.0000] nu_yaw=-0.148
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.88 du0=0.0645 pin0=-0.047 a0=[0.022 0.086 -0.000 -0.000 0.003]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.42 du1=0.0538 pin1=-0.015 a1=[-0.022 0.088 0.000 -0.000 0.003]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.013 0.183 -0.983] nu_des=[-0.00 0.28 -0.10 -1.01 0.11]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0890 dmin0=-19.2262 dmax0=25.7738
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.764 -0.884 -0.001 12.733 0.012]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3258 -0.0009] dmax25=[32.2670 0.0003] nu_yaw=-0.104
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.23 du0=0.0890 pin0=-0.033 a0=[0.001 0.161 -0.000 -0.000 -0.040]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.17 du1=0.1408 pin1=0.018 a1=[-0.001 0.164 0.000 -0.000 -0.041]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.026 ach2=0.026 r=0.07 wsp2=-0.12 ddelta=[-0.0039 0.0018 -0.0002]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.194 0.010 0.195 -0.981] nu_des=[0.01 0.02 0.04 -1.12 0.01]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0296 dmin0=-18.5870 dmax0=26.4130
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.000 -1.000] G5=[-0.739 -0.861 -0.000 12.314 0.002]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0180 -0.0001] dmax25=[32.6863 0.0011] nu_yaw=0.038
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.59 du0=-0.0296 pin0=-0.036 a0=[-0.025 0.013 0.025 -0.001 -0.005]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.51 du1=0.0123 pin1=-0.019 a1=[0.027 0.013 -0.004 0.000 -0.005]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.018 0.163 -0.987] nu_des=[-0.02 0.01 0.07 -0.35 0.04]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0237 dmin0=-18.6366 dmax0=26.3634
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.724 -0.839 -0.001 12.070 0.009]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0249 0.0004] dmax25=[32.9299 0.0004] nu_yaw=0.069
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.64 du0=-0.0237 pin0=-0.055 a0=[0.039 0.007 0.000 -0.000 -0.015]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-20.03 du1=-0.0751 pin1=-0.029 a1=[-0.038 0.007 -0.000 -0.000 -0.015]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.018 ach2=0.015 r=-0.10 wsp2=0.04 ddelta=[-0.0023 0.0002 0.0013]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.202 0.024 0.141 -0.990] nu_des=[-0.02 -0.04 0.01 0.07 0.04]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0210 dmin0=-18.7854 dmax0=26.2146
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.756 -0.854 -0.003 12.593 0.043]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0103 0.0017] dmax25=[32.4067 0.0032] nu_yaw=0.005
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.79 du0=0.0210 pin0=0.000 a0=[0.027 0.002 0.001 0.000 -0.010]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.25 du1=-0.0570 pin1=0.000 a1=[-0.035 -0.008 -0.002 0.000 -0.012]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.171 -0.985] nu_des=[-0.00 -0.14 -0.06 -0.99 0.03]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0470 dmin0=-19.1265 dmax0=25.8735
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.006 -1.000] G5=[-0.761 -0.836 -0.005 12.688 0.080]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.1145 0.0023] dmax25=[32.3122 0.0031] nu_yaw=-0.058
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.13 du0=-0.0470 pin0=0.044 a0=[0.007 -0.085 -0.001 0.000 -0.012]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.79 du1=-0.0586 pin1=0.037 a1=[-0.007 -0.078 0.002 -0.001 -0.012]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.034 ach2=-0.018 r=0.09 wsp2=0.01 ddelta=[-0.0048 -0.0074 -0.0012]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.162 -0.987] nu_des=[-0.01 -0.23 -0.04 -0.35 0.08]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1813 dmin0=-19.1369 dmax0=25.8631
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.747 -0.849 -0.002 12.451 0.034]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.2716 0.0032] dmax25=[32.5490 0.0032] nu_yaw=-0.036
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.14 du0=-0.1813 pin0=-0.032 a0=[0.012 -0.133 -0.000 -0.000 -0.029]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.13 du1=-0.1919 pin1=-0.016 a1=[-0.011 -0.136 0.000 -0.000 -0.029]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.014 0.182 -0.983] nu_des=[0.01 -0.19 0.03 -0.90 0.09]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1011 dmin0=-18.5290 dmax0=26.4710
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.739 -0.847 -0.001 12.317 0.024]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.1419 0.0021] dmax25=[32.6825 0.0033] nu_yaw=0.028
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.53 du0=-0.1011 pin0=0.066 a0=[-0.023 -0.112 0.001 0.000 -0.032]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.40 du1=-0.0907 pin1=0.025 a1=[0.022 -0.103 -0.001 -0.001 -0.033]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.048 ach2=0.047 r=-0.06 wsp2=-0.03 ddelta=[-0.0058 0.0038 -0.0008]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.195 0.011 0.190 -0.982] nu_des=[-0.01 0.16 0.05 -1.57 0.05]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0312 dmin0=-18.8264 dmax0=26.1736
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.728 -0.841 -0.001 12.127 0.011]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1497 -0.0009] dmax25=[32.8726 0.0002] nu_yaw=0.046
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.83 du0=0.0312 pin0=-0.062 a0=[0.016 0.095 0.000 -0.000 -0.019]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.87 du1=0.0196 pin1=-0.042 a1=[-0.016 0.097 -0.000 -0.000 -0.019]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.160 -0.987] nu_des=[-0.01 -0.05 0.02 -0.58 0.02]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0746 dmin0=-19.1021 dmax0=25.8979
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.736 -0.847 -0.001 12.274 0.018]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0970 0.0009] dmax25=[32.7260 0.0009] nu_yaw=0.022
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.10 du0=-0.0746 pin0=-0.057 a0=[0.017 -0.026 0.000 -0.000 -0.008]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.51 du1=-0.0810 pin1=-0.030 a1=[-0.016 -0.027 -0.000 -0.000 -0.008]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.032 ach2=-0.032 r=0.04 wsp2=0.03 ddelta=[0.0048 -0.0020 0.0002]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.200 0.019 0.160 -0.987] nu_des=[0.01 -0.05 -0.04 -0.38 0.10]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0294 dmin0=-19.2032 dmax0=25.7968
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.781 -0.884 -0.003 13.023 0.043]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0085 0.0005] dmax25=[31.9773 0.0029] nu_yaw=-0.039
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.20 du0=-0.0294 pin0=0.050 a0=[-0.012 -0.032 -0.000 -0.000 -0.036]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.99 du1=-0.0209 pin1=0.037 a1=[0.012 -0.032 0.000 -0.000 -0.037]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.173 -0.985] nu_des=[0.00 0.23 -0.01 -0.69 0.13]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0487 dmin0=-19.1211 dmax0=25.8789
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.793 -0.904 -0.002 13.208 0.032]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2713 -0.0018] dmax25=[31.7915 0.0006] nu_yaw=-0.007
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.12 du0=0.0487 pin0=-0.026 a0=[-0.008 0.132 -0.000 -0.000 -0.050]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.32 du1=0.0747 pin1=-0.017 a1=[0.007 0.135 0.000 -0.000 -0.051]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.018 ach2=0.006 r=0.00 wsp2=-0.02 ddelta=[0.0060 0.0060 0.0011]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.174 -0.985] nu_des=[0.02 0.07 0.04 -0.77 0.22]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0680 dmin0=-18.8513 dmax0=26.1487
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.731 -0.844 -0.001 12.183 0.014]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1401 -0.0011] dmax25=[32.8170 0.0000] nu_yaw=0.039
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.85 du0=-0.0680 pin0=0.017 a0=[-0.042 0.038 0.000 -0.000 -0.082]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.65 du1=-0.0039 pin1=-0.000 a1=[0.040 0.039 -0.000 -0.000 -0.083]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.194 0.010 0.195 -0.981] nu_des=[-0.00 0.04 0.04 -1.76 0.10]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0493 dmin0=-18.7135 dmax0=26.2865
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.743 -0.850 -0.001 12.378 0.025]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1075 -0.0017] dmax25=[32.6220 0.0007] nu_yaw=0.041
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.71 du0=0.0493 pin0=0.059 a0=[0.006 0.021 0.000 -0.000 -0.036]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.52 du1=0.0037 pin1=0.026 a1=[-0.006 0.021 -0.000 -0.000 -0.037]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.023 ach2=0.021 r=-0.04 wsp2=0.05 ddelta=[-0.0093 -0.0051 -0.0001]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.194 0.009 0.198 -0.980] nu_des=[-0.02 0.25 -0.03 -2.09 0.14]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0824 dmin0=-19.0106 dmax0=25.9894
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.767 -0.881 -0.001 12.787 0.021]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2875 -0.0017] dmax25=[32.2125 -0.0005] nu_yaw=-0.031
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.01 du0=0.0824 pin0=-0.044 a0=[0.034 0.146 -0.000 -0.000 -0.053]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.23 du1=0.0310 pin1=-0.030 a1=[-0.032 0.148 0.000 -0.000 -0.054]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.172 -0.985] nu_des=[-0.01 0.06 -0.08 -0.99 0.01]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0259 dmin0=-19.0121 dmax0=25.9879
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.769 -0.883 -0.001 12.816 0.021]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[-0.0527 -0.0001] dmax25=[32.1837 0.0010] nu_yaw=-0.078
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.01 du0=0.0259 pin0=-0.031 a0=[0.021 0.039 -0.001 0.000 -0.002]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.85 du1=0.0132 pin1=-0.002 a1=[-0.020 0.035 0.003 -0.001 -0.002]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.082 ach2=-0.079 r=0.13 wsp2=-0.04 ddelta=[0.0102 -0.0056 -0.0004]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.172 -0.985] nu_des=[0.01 -0.07 -0.04 -0.51 0.10]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0456 dmin0=-19.2291 dmax0=25.7709
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.764 -0.884 -0.001 12.733 0.011]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0160 0.0002] dmax25=[32.2666 0.0017] nu_yaw=-0.042
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.23 du0=-0.0456 pin0=0.046 a0=[-0.012 -0.042 -0.001 0.000 -0.037]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.45 du1=-0.0287 pin1=0.035 a1=[0.011 -0.038 0.002 -0.000 -0.037]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.198 0.016 0.171 -0.985] nu_des=[0.00 0.17 -0.01 -0.43 0.08]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0287 dmin0=-18.7193 dmax0=26.2807
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.754 -0.876 -0.000 12.573 0.007]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1889 -0.0005] dmax25=[32.4269 0.0007] nu_yaw=-0.007
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.72 du0=0.0287 pin0=-0.034 a0=[-0.010 0.101 -0.000 -0.000 -0.028]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.54 du1=0.0575 pin1=-0.026 a1=[0.009 0.103 0.000 -0.000 -0.029]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.017 ach2=-0.017 r=-0.05 wsp2=-0.08 ddelta=[0.0024 -0.0012 0.0001]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.200 0.019 0.159 -0.987] nu_des=[-0.00 0.24 0.01 -0.21 0.15]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1360 dmin0=-18.6745 dmax0=26.3255
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.772 -0.885 -0.001 12.862 0.024]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3606 -0.0001] dmax25=[32.1383 0.0023] nu_yaw=0.005
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.67 du0=0.1360 pin0=0.053 a0=[0.002 0.137 0.000 -0.000 -0.056]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.66 du1=0.1052 pin1=0.024 a1=[-0.002 0.141 -0.000 -0.000 -0.058]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.014 0.182 -0.983] nu_des=[-0.08 -0.34 -0.04 -4.16 0.41]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1341 dmin0=-19.0293 dmax0=25.9707
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.004 -1.000] G5=[-0.820 -0.920 -0.003 13.665 0.057]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.2287 0.0093] dmax25=[31.3350 0.0117] nu_yaw=-0.040
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-19.03 du0=-0.1341 pin0=0.060 a0=[0.158 -0.199 -0.000 -0.000 -0.154]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.49 du1=-0.4530 pin1=0.058 a1=[-0.153 -0.202 0.000 -0.000 -0.157]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.008 ach2=-0.006 r=-0.02 wsp2=0.02 ddelta=[-0.0060 -0.0060 -0.0015]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.018 0.164 -0.986] nu_des=[0.00 0.19 0.01 -3.02 0.05]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0223 dmin0=-18.8382 dmax0=26.1618
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.756 -0.872 -0.001 12.603 0.015]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.1790 -0.0012] dmax25=[32.3966 -0.0000] nu_yaw=0.012
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.84 du0=0.0223 pin0=-0.066 a0=[-0.005 0.113 0.000 -0.000 -0.019]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.14 du1=0.0650 pin1=-0.036 a1=[0.005 0.115 -0.000 -0.000 -0.020]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.201 0.022 0.149 -0.989] nu_des=[-0.00 0.01 -0.02 -1.97 -0.00]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0133 dmin0=-18.8585 dmax0=26.1415
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.000 -1.000] G5=[-0.759 -0.884 -0.000 12.657 0.002]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0052 -0.0002] dmax25=[32.3425 0.0010] nu_yaw=-0.025
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.86 du0=0.0133 pin0=-0.001 a0=[0.010 0.003 -0.000 -0.000 0.002]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.37 du1=-0.0015 pin1=0.003 a1=[-0.009 0.003 0.000 -0.000 0.002]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.018 ach2=-0.068 r=0.04 wsp2=-0.01 ddelta=[0.0072 0.0035 -0.0005]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.018 0.163 -0.987] nu_des=[0.01 -0.02 0.02 -1.96 0.03]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0170 dmin0=-18.8041 dmax0=26.1959
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.000 -1.000] G5=[-0.759 -0.882 -0.000 12.650 0.006]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0077 -0.0005] dmax25=[32.3502 0.0007] nu_yaw=0.020
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.80 du0=-0.0170 pin0=0.027 a0=[-0.015 -0.012 -0.007 -0.001 -0.009]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.27 du1=-0.0117 pin1=0.009 a1=[0.013 -0.011 -0.012 -0.001 -0.009]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.162 -0.987] nu_des=[-0.00 -0.07 0.03 -1.50 0.08]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0113 dmin0=-18.7646 dmax0=26.2354
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.753 -0.871 -0.001 12.554 0.012]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0195 0.0010] dmax25=[32.4464 0.0022] nu_yaw=0.034
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.76 du0=-0.0113 pin0=0.000 a0=[0.007 0.006 0.005 -0.009 -0.020]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.17 du1=-0.0684 pin1=0.000 a1=[-0.009 -0.015 -0.014 -0.005 -0.025]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.026 ach2=-0.027 r=0.00 wsp2=-0.02 ddelta=[0.0060 0.0000 0.0002]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.019 0.161 -0.987] nu_des=[0.01 -0.12 0.04 -1.14 0.08]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0482 dmin0=-18.7857 dmax0=26.2143
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.757 -0.872 -0.001 12.611 0.017]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0585 0.0001] dmax25=[32.3887 0.0018] nu_yaw=0.041
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.79 du0=-0.0482 pin0=0.067 a0=[-0.014 -0.071 0.001 0.000 -0.031]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.20 du1=-0.0563 pin1=0.030 a1=[0.013 -0.065 -0.002 -0.001 -0.032]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.201 0.022 0.151 -0.989] nu_des=[-0.01 0.27 0.01 -0.52 0.06]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0981 dmin0=-18.7361 dmax0=26.2639
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.758 -0.878 -0.001 12.640 0.011]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2781 -0.0008] dmax25=[32.3600 0.0003] nu_yaw=0.013
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.74 du0=0.0981 pin0=-0.046 a0=[0.013 0.154 0.000 -0.000 -0.023]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-19.17 du1=0.0854 pin1=-0.037 a1=[-0.012 0.158 -0.000 -0.000 -0.023]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.022 ach2=0.016 r=-0.01 wsp2=0.00 ddelta=[0.0120 0.0120 0.0037]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.199 0.018 0.164 -0.986] nu_des=[0.00 0.33 -0.01 -0.47 0.17]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1705 dmin0=-18.4998 dmax0=26.5002
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.784 -0.891 -0.002 13.074 0.038]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.4693 -0.0001] dmax25=[31.9261 0.0023] nu_yaw=-0.014
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.50 du0=0.1705 pin0=0.046 a0=[-0.005 0.193 -0.000 -0.000 -0.064]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.92 du1=0.1595 pin1=0.023 a1=[0.005 0.197 0.000 -0.000 -0.065]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.195 0.012 0.189 -0.982] nu_des=[0.01 -0.15 0.02 -1.09 0.11]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0762 dmin0=-18.5923 dmax0=26.4077
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.758 -0.855 -0.003 12.628 0.044]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0946 0.0013] dmax25=[32.3722 0.0028] nu_yaw=0.019
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.59 du0=-0.0762 pin0=0.073 a0=[-0.015 -0.094 0.000 0.000 -0.042]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.92 du1=-0.0764 pin1=0.038 a1=[0.014 -0.085 -0.001 -0.001 -0.042]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.002 ach2=0.002 r=-0.00 wsp2=0.01 ddelta=[-0.0057 -0.0052 -0.0004]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.196 0.013 0.185 -0.983] nu_des=[0.00 0.00 0.01 -0.60 -0.00]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0053 dmin0=-18.7185 dmax0=26.2815
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.760 -0.868 -0.002 12.660 0.028]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[0.0033 -0.0003] dmax25=[32.3398 0.0010] nu_yaw=0.006
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.72 du0=-0.0053 pin0=-0.000 a0=[-0.004 0.000 -0.002 -0.000 0.001]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.99 du1=0.0006 pin1=-0.000 a1=[0.003 0.000 -0.003 -0.001 0.001]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.195 0.011 0.192 -0.981] nu_des=[-0.01 -0.01 0.01 -0.46 0.03]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0003 dmin0=-18.4858 dmax0=26.5142
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.764 -0.876 -0.001 12.727 0.022]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 9.0] du25=[-0.0025 0.0005] dmax25=[32.2734 0.0016] nu_yaw=0.006
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.49 du0=0.0003 pin0=0.004 a0=[0.014 -0.003 -0.003 -0.000 -0.012]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.79 du1=-0.0290 pin1=0.002 a1=[-0.012 -0.003 -0.003 -0.001 -0.012]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.011 ach2=0.003 r=0.01 wsp2=0.02 ddelta=[0.0085 0.0082 0.0008]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.191 0.005 0.216 -0.976] nu_des=[0.00 0.27 -0.01 -0.94 0.17]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1437 dmin0=-18.3545 dmax0=26.6455
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.768 -0.869 -0.002 12.798 0.041]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3953 -0.0022] dmax25=[32.2019 0.0002] nu_yaw=-0.010
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.35 du0=0.1437 pin0=0.057 a0=[-0.005 0.159 -0.000 -0.000 -0.067]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.57 du1=0.1272 pin1=0.029 a1=[0.005 0.161 0.000 -0.000 -0.068]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.187 -0.002 0.242 -0.970] nu_des=[0.00 -0.06 0.01 -1.51 0.21]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0420 dmin0=-18.2162 dmax0=26.7838
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.762 -0.864 -0.002 12.708 0.040]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0351 -0.0001] dmax25=[32.2921 0.0023] nu_yaw=0.006
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.22 du0=-0.0420 pin0=0.000 a0=[-0.005 0.010 0.000 -0.009 -0.038]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.36 du1=-0.0587 pin1=-0.000 a1=[0.007 -0.005 -0.001 -0.006 -0.054]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.019 ach2=0.006 r=-0.01 wsp2=0.01 ddelta=[0.0012 0.0036 -0.0022]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.182 -0.009 0.268 -0.963] nu_des=[-0.00 -0.02 0.00 -2.04 0.19]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0007 dmin0=-18.0589 dmax0=26.9411
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.751 -0.855 -0.002 12.522 0.034]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.0727 -0.0007] dmax25=[32.4776 0.0017] nu_yaw=0.003
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-18.06 du0=-0.0007 pin0=0.081 a0=[0.005 -0.012 0.000 -0.000 -0.074]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-18.13 du1=-0.0373 pin1=0.054 a1=[-0.004 -0.012 -0.000 -0.000 -0.075]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.257 0.178 -0.016 0.294 -0.956] nu_des=[0.01 -0.21 0.02 -2.44 0.26]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1653 dmin0=-17.8474 dmax0=27.1526
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.747 -0.852 -0.002 12.455 0.031]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.1254 0.0005] dmax25=[32.5446 0.0029] nu_yaw=0.017
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-17.85 du0=-0.1653 pin0=0.094 a0=[-0.029 -0.125 -0.000 -0.000 -0.105]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-17.84 du1=-0.1337 pin1=0.068 a1=[0.028 -0.125 -0.000 -0.000 -0.105]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.015 ach2=-0.033 r=-0.01 wsp2=0.04 ddelta=[0.0048 0.0060 -0.0020]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.256 0.173 -0.023 0.321 -0.947] nu_des=[0.00 -0.18 0.01 -2.79 0.32]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1470 dmin0=-17.4783 dmax0=27.5217
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.742 -0.850 -0.001 12.359 0.023]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0894 0.0007] dmax25=[32.6405 0.0031] nu_yaw=0.011
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-17.48 du0=-0.1470 pin0=0.099 a0=[-0.005 -0.114 -0.000 -0.000 -0.128]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-17.42 du1=-0.1617 pin1=0.074 a1=[0.004 -0.113 0.000 -0.000 -0.127]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.255 0.168 -0.031 0.347 -0.938] nu_des=[0.00 -0.15 0.01 -3.09 0.30]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1248 dmin0=-17.0085 dmax0=27.9915
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.731 -0.839 -0.001 12.191 0.022]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0580 0.0013] dmax25=[32.8087 0.0037] nu_yaw=0.010
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-17.01 du0=-0.1248 pin0=0.103 a0=[-0.008 -0.096 -0.000 -0.000 -0.123]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-16.89 du1=-0.1295 pin1=0.081 a1=[0.008 -0.095 0.000 -0.000 -0.122]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.007 ach2=-0.038 r=0.00 wsp2=0.03 ddelta=[0.0060 0.0060 -0.0017]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.254 0.163 -0.038 0.374 -0.928] nu_des=[0.00 0.24 0.01 -3.33 0.24]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1237 dmin0=-16.5770 dmax0=28.4230
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.728 -0.835 -0.001 12.125 0.021]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3782 -0.0017] dmax25=[32.8748 -0.0006] nu_yaw=0.007
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-16.58 du0=0.1237 pin0=0.077 a0=[-0.007 0.153 -0.000 -0.000 -0.100]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-16.38 du1=0.1144 pin1=0.055 a1=[0.007 0.151 0.000 -0.000 -0.099]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.253 0.158 -0.045 0.399 -0.917] nu_des=[0.01 0.22 -0.01 -3.43 0.24]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1030 dmin0=-16.0060 dmax0=28.9940
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.727 -0.835 -0.001 12.109 0.019]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3520 -0.0016] dmax25=[32.8909 -0.0004] nu_yaw=-0.007
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-16.01 du0=0.1030 pin0=0.079 a0=[-0.018 0.142 0.000 -0.000 -0.100]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-15.76 du1=0.1163 pin1=0.058 a1=[0.017 0.140 -0.000 -0.000 -0.099]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.013 ach2=-0.010 r=0.01 wsp2=0.02 ddelta=[0.0024 0.0031 -0.0015]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.252 0.152 -0.052 0.425 -0.905] nu_des=[0.00 0.21 0.01 -3.67 0.32]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.0395 dmin0=-15.7302 dmax0=29.2698
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.715 -0.823 -0.001 11.922 0.017]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3413 -0.0014] dmax25=[33.0783 -0.0003] nu_yaw=0.008
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-15.73 du0=0.0395 pin0=0.036 a0=[-0.002 0.141 -0.000 -0.000 -0.135]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-15.40 du1=0.0326 pin1=0.025 a1=[0.002 0.139 0.000 -0.000 -0.133]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.250 0.147 -0.059 0.451 -0.893] nu_des=[0.01 -0.08 0.01 -3.69 0.25]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1108 dmin0=-15.3144 dmax0=29.6856
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.001 -1.000] G5=[-0.727 -0.836 -0.001 12.111 0.018]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.0186 -0.0015] dmax25=[32.8889 -0.0003] nu_yaw=0.006
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-15.31 du0=-0.1108 pin0=0.069 a0=[-0.017 -0.055 -0.000 -0.000 -0.107]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-14.94 du1=-0.0868 pin1=0.057 a1=[0.016 -0.054 0.000 -0.000 -0.105]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.016 ach2=0.013 r=0.01 wsp2=0.01 ddelta=[0.0108 0.0120 0.0013]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.248 0.141 -0.067 0.478 -0.879] nu_des=[0.00 -0.26 0.02 -3.36 0.29]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1982 dmin0=-14.4309 dmax0=30.5691
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.747 -0.858 -0.001 12.444 0.020]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.2054 0.0030] dmax25=[32.5565 0.0030] nu_yaw=0.021
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-14.43 du0=-0.1982 pin0=0.118 a0=[-0.007 -0.179 -0.000 -0.000 -0.130]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-14.01 du1=-0.1921 pin1=0.104 a1=[0.006 -0.175 0.000 -0.000 -0.127]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.246 0.135 -0.074 0.504 -0.864] nu_des=[-0.01 0.20 -0.02 -2.87 0.29]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.1186 dmin0=-13.5003 dmax0=31.4997
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.771 -0.883 -0.001 12.852 0.025]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.3365 -0.0019] dmax25=[32.1477 -0.0008] nu_yaw=-0.018
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-13.50 du0=0.1186 pin0=0.098 a0=[0.017 0.137 0.000 -0.000 -0.133]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-13.08 du1=0.0619 pin1=0.074 a1=[-0.016 0.133 -0.000 -0.000 -0.130]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.020 ach2=-0.030 r=0.01 wsp2=0.00 ddelta=[0.0048 0.0048 -0.0021]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.244 0.128 -0.082 0.530 -0.848] nu_des=[0.01 -0.08 -0.00 -2.73 0.25]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.1145 dmin0=-13.0640 dmax0=31.9360
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.002 -1.000] G5=[-0.754 -0.863 -0.002 12.569 0.026]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 8.5] du25=[0.0156 -0.0003] dmax25=[32.4312 0.0001] nu_yaw=-0.002
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-13.06 du0=-0.1145 pin0=0.078 a0=[-0.017 -0.057 0.000 0.001 -0.119]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-12.57 du1=-0.0856 pin1=0.064 a1=[0.015 -0.050 -0.000 -0.002 -0.112]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.241 0.122 -0.089 0.556 -0.831] nu_des=[-0.00 -0.24 -0.01 -1.92 0.35]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.2206 dmin0=-11.9549 dmax0=33.0451
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.790 -0.898 -0.002 13.160 0.035]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.1887 0.0026] dmax25=[31.8403 0.0050] nu_yaw=-0.005
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-11.95 du0=-0.2206 pin0=0.117 a0=[0.007 -0.179 0.000 -0.000 -0.166]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-11.42 du1=-0.2362 pin1=0.104 a1=[-0.007 -0.173 -0.000 -0.000 -0.160]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=-0.005 ach2=0.011 r=0.00 wsp2=-0.00 ddelta=[0.0120 0.0120 0.0022]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.238 0.115 -0.097 0.582 -0.814] nu_des=[0.01 0.12 -0.01 -1.82 0.37]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.0621 dmin0=-11.3135 dmax0=33.6865
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.003 -1.000] G5=[-0.760 -0.863 -0.002 12.670 0.037]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.2300 -0.0030] dmax25=[32.3299 -0.0018] nu_yaw=-0.008
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-11.31 du0=-0.0621 pin0=0.004 a0=[-0.009 -0.021 0.004 -0.006 -0.033]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-10.73 du1=-0.0488 pin1=-0.004 a1=[0.010 -0.001 -0.004 -0.006 -0.044]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.235 0.108 -0.104 0.606 -0.795] nu_des=[0.01 -0.19 0.01 -1.29 0.32]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=-0.2176 dmin0=-10.3176 dmax0=34.6824
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.004 -1.000] G5=[-0.761 -0.854 -0.003 12.677 0.051]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[0.1355 0.0019] dmax25=[32.3231 0.0019] nu_yaw=0.008
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-10.32 du0=-0.2176 pin0=0.115 a0=[-0.027 -0.145 -0.000 -0.000 -0.160]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-9.74 du1=-0.1676 pin1=0.100 a1=[0.025 -0.139 0.000 -0.000 -0.153]
+INFO  [mc_indi_tiltrotor] YWdbg nu2=0.013 ach2=0.021 r=0.00 wsp2=-0.01 ddelta=[0.0120 0.0120 0.0037]
+INFO  [mc_indi_tiltrotor] T0dbg1 G0=[-0.232 0.101 -0.111 0.631 -0.776] nu_des=[0.00 0.49 -0.02 -0.59 0.34]
+INFO  [mc_indi_tiltrotor] T0dbg2 Ws34=[0.1 20.0] Wu0=1.0 du0=0.2751 dmin0=-9.2574 dmax0=35.7426
+INFO  [mc_indi_tiltrotor] T2dbg1 G2=[-0.000 -0.650 0.060 0.005 -1.000] G5=[-0.755 -0.839 -0.004 12.575 0.064]
+INFO  [mc_indi_tiltrotor] T2dbg2 Wu25=[1.0 1000000.0] du25=[-0.6911 -0.0048] dmax25=[32.4245 -0.0024] nu_yaw=-0.017
+INFO  [mc_indi_tiltrotor] WRdbg0 Wu0=1 lo0=-9.26 du0=0.2751 pin0=0.069 a0=[-0.008 0.390 0.000 -0.000 -0.175]
+INFO  [mc_indi_tiltrotor] WRdbg1 Wu1=1 lo1=-8.69 du1=0.2491 pin1=0.038 a1=[0.007 0.371 -0.000 -0.000 -0.167]
+INFO  [commander] Disarmed by internal command	
+INFO  [tone_alarm] notify neutral

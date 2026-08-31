@@ -1,0 +1,23 @@
+# --- MATLAB/Simulink üretilmiş çıktılar (yeniden üretilebilir) ---
+codegen/
+codegen_out/
+slprj/
+*.mexa64
+*.mexw64
+*.slxc
+*.asv
+*.autosave
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- Yerel yedekler ve geçici dosyalar ---
+_backup_*/
+*.bak
+*~
+
+# --- Claude Code yerel ayarları ---
+.claude/settings.local.json

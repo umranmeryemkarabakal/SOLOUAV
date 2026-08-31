@@ -1,0 +1,1601 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tri-tiltrotor VTOL with a conventional empennage.
+
+  Three tilting rotors carry the VTOL and the transition: two above the main wing and
+  one on the tail boom. Behind the wing sits a real tail assembly - a horizontal
+  stabiliser with two elevators under the rear rotor, and a fin with a rudder - which
+  is what does the aerodynamic work in forward flight.
+
+  Pitch in hover comes from plain thrust differential between the wing pair and the
+  rear rotor (2 * T_front * 0.22 = T_rear * 0.65), the same mechanism as the
+  tiltrotor_2plus1 model, so no change to PX4's control allocation is needed. That is
+  the reason all three rotors tilt rather than the tail carrying a fixed pusher:
+  ActuatorEffectivenessTiltrotorVTOL writes every rotor's thrust *magnitude* into the
+  z row of the effectiveness matrix regardless of where the rotor points
+  (ActuatorEffectivenessRotors.cpp), taking direction to come from the shared
+  collective tilt, so a fixed forward-facing rotor gets allocated as if it lifted.
+
+  The wing rotors sit at x = 0.27, y = +-0.35, on pylons that reach FORWARD past the
+  wing leading edge (2026-08-31, step 143). This is the classic tiltrotor nacelle
+  layout and it is forced by geometry, not preference.
+
+  At the old station (x = 0.22, y = +-0.25) the 129.4 mm disc swept THROUGH the
+  x8_wing centre pod. Two things hid this for a long time:
+    1. base_link's collision box (0.55 x 2.144 x 0.05, z -0.160..-0.110) does not
+       represent the mesh at all ; the mesh spans z -0.100..+0.208 and the pod
+       (half-width 0.20 m, reaching x = +0.288) is absent from it. Any box-based
+       clearance check therefore reported ~65 mm where the truth was 0 mm.
+    2. The first mesh-based check measured distance to mesh VERTICES. Vertex spacing
+       here is ~21 mm, so a disc entering the surface between vertices read as
+       "32.8 mm clear". cad/dogrula.py, which does a real solid boolean, kept
+       reporting penetration and was right. check_model_clearance.py now samples
+       triangles by area (~1.5 mm) and models the disc's 10.6 mm thickness.
+
+  Why x = 0.27 and not a span move: at 90 deg tilt the disc is a VERTICAL plane. Any
+  hub behind the local leading edge cuts the wing chord, and sweep means going
+  outboard pushes x further aft ; so no station along the span works while the pylon
+  sits on the wing (measured: 0.0 mm at every y from 0.35 to 0.70). Shrinking the prop
+  does not help either (0.0 mm even at 170 mm diameter) because the disc PLANE, not
+  its radius, is what is inside the wing. Raising the pylon works but needs +80 mm,
+  which moves r_z ; the exact quantity whose change broke back-transition when the
+  tail rotor was raised (step 132). Moving the hub ahead of the leading edge is the
+  only fix that leaves r_z untouched: 32.8 mm clear, verified by both the triangle
+  sampler and cad/dogrula.py (front rotors clean at all tilt angles for the first time).
+
+  Cost: arm_ratio = 2*ROTOR_PX[0]/|ROTOR_PX[2]| rises 0.677 -> 0.831, so the hover
+  split shifts (auto-derived in TiltrotorIndiControl.hpp, no separate constant).
+  r_z and the tail arm are unchanged.
+  They were moved from below the wing to above it on 2026-08-02; the pylon/motor/rotor
+  stack was mirrored about the wing, keeping the model's existing 0.0075 m prop-above-
+  motor clearance (the same rule the tail rotor follows). NOTE: rotor z feeds
+  tiltrotor_indi::ROTOR_PZ in the PX4 controller with an FLU->FRD sign flip, so that
+  array must track this file; see the comment at the rotor links below.
+  Further outboard the wing ends sooner - at y = +-0.35 it stops at x = 0.20 - which
+  is why the 2+1 model needs forward columns to reach its rotors.
+
+  Wing, propeller and elevon meshes and the aerodynamic coefficients are reused from
+  the standard_vtol / tiltrotor / tiltrotor_2plus1 models, none of which are modified.
+-->
+<sdf version='1.5'>
+  <model name='tiltrotor_tailplane'>
+    <pose>0 0 0.246 0 0 0</pose>
+    <link name='base_link'>
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>5</mass>
+        <!-- Wingspan is the tri-tiltrotor's, so ixx is close to its 0.197563. iyy/izz
+             go up from that model's 0.2: the tail assembly adds roughly 0.1 kg of
+             stabiliser and fin about 0.7 m aft, worth m*r^2 ~ 0.05 about both the
+             pitch and yaw axes. The stabiliser's own span contributes ~0.002 to ixx,
+             which is inside the noise. -->
+        <inertia>
+          <ixx>0.2</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.25</iyy>
+          <iyz>0</iyz>
+          <izz>0.25</izz>
+        </inertia>
+      </inertial>
+        <!-- RUZGAR ETKISI (2026-08-31, adim 135). ONCEDEN YOKTU: model
+             hicbir link'inde <enable_wind> tasimadigi icin dunyadaki <wind>
+             ayari bu araca HIC uygulanmiyordu - yani butun SITL dogrulamalari
+             SIFIR RUZGARDA yapilmisti. Gercek bir ucusun en yaygin bozucusu
+             modelde yoktu.
+             MATLAB plant'i (tiltrotor_plant_deriv.m) rüzgari zaten destekliyor
+             (wind_ned girisi, v_rel = vel_b - wind_b), yani bu ekleme iki
+             ortami da ayni bozucuya maruz birakir. -->
+        <enable_wind>true</enable_wind>
+      <!-- GOVDE/KANAT temas kutusu. INIS TAKIMI 2026-08-30'da (adim 133)
+           EKLENENE KADAR yere temas eden TEK sey buydu: araç gövdesinin
+           altındaki düz bir levha, süspansiyonsuz. Ölçülen sonucu, kovalanan
+           iniş sorununun ta kendisi: temas anında pitch açısal ivmesi tek
+           tikte 40.8 rad/s^2'ye fırlıyordu (adım 119). Levha KALDI (kanat
+           gerçekten oradadır ve yan yatışta değer), ama artık ilk temas
+           bacaklara düşüyor.
+           SURTUNME ARTIK TANIMLI: <ode/> bostu, yani Gazebo varsayilani
+           (mu = 1.0) kullaniliyordu — kompozit bir kanat yuzeyi icin fazla
+           yapiskan. mu/mu2 = 0.6/0.5 kuru asfalt-kompozit mertebesi. -->
+      <collision name='base_link_collision'>
+        <pose>-0.01 0 -0.135 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.55 2.144 0.05</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>100000</kp>
+              <kd>1.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name='base_link_visual'>
+        <pose>0.53 -1.072 -0.1 1.5707963268 0 3.1415926536</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://standard_vtol/meshes/x8_wing.dae</uri>
+          </mesh>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Tail boom carrying the rear rotor and the empennage. -->
+      <!-- Kuyruk motor pilonu (2026-08-30, adim 132). Motor 0.045 -> 0.135'e
+           yukseldi, arada 9 cm bosluk kaldi; bu gorsel onu dolduruyor.
+           NEDEN MOTOR YUKSELDI: 0.10 m yaricapli disk 90 dereceye donerken alt
+           ucu z = motor_z - 0.10'a iniyor. Eski motor_z = 0.045 ile bu -0.055
+           demekti — yani disk cubugun (ust yuzu +0.030) ve yatay kuyrugun
+           (+-0.040) ICINDEN geciyordu. Cubugu temizlemek icin motor_z > 0.130
+           sart. Olculdu: check_model_clearance.py. -->
+      <!-- INIS TAKIMI (2026-08-30, adim 133). ONCEDEN HIC YOKTU: arac
+           govdesinin altindaki duz levhayla yere oturuyordu ve olculen temas
+           darbesi tek tikte 40.8 rad/s^2 pitch ivmesiydi (adim 119) — yani
+           kovalanan "sert temas" arizasinin fiziksel karsiligi modelin
+           kendisindeydi, kontrolcude degil.
+           UC AYAK, ucgen yerlesim: iki on ayak rotor istasyonlarinda
+           (x = +0.22, y = +-0.25; adim 143'te motorlar disa alindi ama
+           AYAKLAR YERINDE KALDI: o istasyonda kanat hala var, LE = +0.254),
+           bir kuyruk ayagi (x = -0.62). Ucu da
+           z = -0.20'ye kadar iner, yani govde levhasindan (z = -0.16 alt yuz)
+           4 cm asagida — ilk temas HER ZAMAN bacaklara duser.
+           kp dusuruldu (100000 -> 30000) ve kd yukseltildi (1.0 -> 5.0):
+           gercek bir inis takimi yaylanir, rijit bir kutu yaylanmaz. Bu,
+           temas darbesini yumusatan asil parametredir.
+           NOT: ayaklar base_link'in COLLISION'idir, ayri link DEGIL — ayri
+           link olsaydi eklem ve atalet gerekirdi ve kutle butcesi degisirdi.
+           Gorsel karsiliklari da eklendi ki GUI'de gorulsun. -->
+      <collision name='leg_front_right_collision'>
+        <pose>0.22 -0.25 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>12000</kp>
+              <kd>25.0</kd>
+              <max_vel>0.02</max_vel>
+              <min_depth>0.003</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name='leg_front_right_visual'>
+        <pose>0.22 -0.25 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1.0</ambient>
+          <diffuse>0.1 0.1 0.1 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name='leg_front_left_collision'>
+        <pose>0.22 0.25 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>12000</kp>
+              <kd>25.0</kd>
+              <max_vel>0.02</max_vel>
+              <min_depth>0.003</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name='leg_front_left_visual'>
+        <pose>0.22 0.25 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1.0</ambient>
+          <diffuse>0.1 0.1 0.1 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name='leg_tail_collision'>
+        <pose>-0.62 0.0 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>12000</kp>
+              <kd>25.0</kd>
+              <max_vel>0.02</max_vel>
+              <min_depth>0.003</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name='leg_tail_visual'>
+        <pose>-0.62 0.0 -0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.012</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1.0</ambient>
+          <diffuse>0.1 0.1 0.1 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- INCELTILDI 0.04 -> 0.02 (2026-08-30, adim 132). Ust yuzu +0.030'dan
+           +0.010'a indi. Kuyruk rotor diskinin 90 derecede alt ucu z = 0.035'e
+           iniyor; eski cubuk ust yuzuyle temas ediyordu. Inceltmek, motor
+           pilonunu 12 cm yerine 9 cm'de tutmayi mumkun kildi — pilon ne kadar
+           uzunsa egilme/titresim riski o kadar buyuk (kullanici uyarisi). -->
+      <visual name='tail_boom'>
+        <!-- UZATILDI 0.62 -> 0.71 m, merkez -0.50 -> -0.545 (2026-08-31,
+             adim 139). Fin adim 133'te -0.74'ten -0.86'ya tasindi ama cubuk
+             -0.81'de bitiyordu: fin cubugun ucundan 5 cm TASIYORDU, yani
+             gercek aracta tabani desteklenmeyen bir konsol. Simulasyonda
+             isirmaz (rijit govde) ama gercekte titresim ve yorulma yaratir.
+             Yeni cubuk -0.95..-0.19; fin (-0.94..-0.78) artik tamamen
+             cubugun uzerinde oturuyor. Ilk denemede 0.71 m verilmisti ve fin
+             hala 4 cm tasiyordu - olcum yakaladi. -->
+        <pose>-0.545 0 -0.01 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.71 0.04 0.02</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Horizontal stabiliser, slung under the rear rotor. Its 0.11 m of clearance
+           below the rotor disc keeps the two from intersecting through the tilt sweep. -->
+      <visual name='tailplane'>
+        <pose>-0.70 0 -0.04 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.16 0.60 0.012</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Strut tying the stabiliser to the boom. -->
+      <visual name='tailplane_strut'>
+        <pose>-0.70 0 -0.015 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.05 0.03 0.06</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Fin. -->
+      <!-- GERIYE ALINDI -0.74 -> -0.86 (2026-08-30, adim 132). OLCULEN SORUN:
+           tilt = 0'da (yani HOVER'IN TAMAMINDA) kuyruk rotor diski yatay olarak
+           z = 0.07'de duruyor ve fin z = 0.02..0.22 araligini kapliyor — disk
+           dogrudan fininin ICINDEN geciyordu. Bu, tilt araligini sinirlayarak
+           COZULEMEZ, cunku carpisma en dusuk tilt'te olusuyor; olculdu.
+           Fin KALDIRILMADI, cunku sabit kanat fazinda (16 m/s, rudder kalici
+           kapali — adim 77) yon kararliligini saglayan tek yapi odur.
+           Geriye almak kolu da uzatiyor: SURF_CPX[4] -0.74 -> -0.95, yaw
+           kararliligi %28 artar. -->
+      <visual name='vertical_stabiliser'>
+        <pose>-0.78 0 0.10 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.16 0.02 0.2</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Pylons rising from the wing to the tilt rotors. At the rotor station
+           (x = 0.185, y = +-0.35, adim 143) the wing's upper surface sits at z = +0.0160,
+           measured off x8_wing.dae by plane section. At the OLD station (0.205, 0.25) it
+           was +0.0188; the 2026-08-02 ray cast read +0.0136 there.
+           Each pylon spans z = +0.010 .. +0.070, so its foot is buried ~4 mm into the
+           wing skin and its head meets the motor body, which starts at +0.0675.
+
+           SHORTENED 0.05 -> 0.03 AND MOVED FORWARD 0.22 -> 0.205 (2026-08-30,
+           step 132). MEASURED PROBLEM: at FULL TILT (90 deg — the fixed-wing
+           cruise attitude, which the mission actually flies) the rotor disc
+           SWEPT THROUGH ITS OWN PYLON. The disc is vertical there and sits at
+           x = 0.245 (the rotor hub is 0.025 above the tilt axis, so tilting 90
+           deg moves it 0.025 aft->fwd); the old pylon's aft face was at exactly
+           x = 0.245. Clearance was 0.0 mm through the whole cruise phase.
+           WHY SHORTEN AND NOT RAISE THE MOTOR: raising was measured too and is
+           far worse — +9.5 cm of pylon buys only 10 mm, while shortening buys
+           25 mm and costs NOTHING: the pylon is pure structure, absent from both
+           the aero model (no LiftDrag) and the control model (not in the
+           effectiveness matrix). Re-check with check_model_clearance.py. -->
+      <visual name='right_motor_pylon'>
+        <pose>0.2175 -0.35 0.04 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.105 0.03 0.06</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name='left_motor_pylon'>
+        <pose>0.2175 0.35 0.04 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.105 0.03 0.06</size>
+          </box>
+        </geometry>
+        <material> <!-- DarkGrey-->
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+
+      <sensor name="imu_sensor" type="imu">
+        <gz_frame_id>base_link</gz_frame_id>
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+        <imu>
+          <angular_velocity>
+            <x>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.0003394</stddev>
+                <dynamic_bias_stddev>3.8785e-05</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.0003394</stddev>
+                <dynamic_bias_stddev>3.8785e-05</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.0003394</stddev>
+                <dynamic_bias_stddev>3.8785e-05</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time>
+              </noise>
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.004</stddev>
+                <dynamic_bias_stddev>0.006</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.004</stddev>
+                <dynamic_bias_stddev>0.006</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0</mean>
+                <stddev>0.004</stddev>
+                <dynamic_bias_stddev>0.006</dynamic_bias_stddev>
+                <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+              </noise>
+            </z>
+          </linear_acceleration>
+        </imu>
+      </sensor>
+      <sensor name="air_pressure_sensor" type="air_pressure">
+        <gz_frame_id>base_link</gz_frame_id>
+        <always_on>1</always_on>
+        <update_rate>50</update_rate>
+        <air_pressure>
+          <pressure>
+            <noise type="gaussian">
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </pressure>
+        </air_pressure>
+      </sensor>
+      <sensor name="magnetometer_sensor" type="magnetometer">
+        <gz_frame_id>base_link</gz_frame_id>
+        <always_on>1</always_on>
+        <update_rate>100</update_rate>
+        <magnetometer>
+          <x>
+            <noise type="gaussian">
+              <stddev>0.0001</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <stddev>0.0001</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <stddev>0.0001</stddev>
+            </noise>
+          </z>
+        </magnetometer>
+      </sensor>
+      <sensor name="navsat_sensor" type="navsat">
+        <gz_frame_id>base_link</gz_frame_id>
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+      </sensor>
+    </link>
+
+    <!-- ============ Right wing rotor (tilting, above the wing) ============ -->
+    <!-- Stack, bottom up: wing upper surface +0.0136, pylon +0.010..+0.070,
+         motor body +0.0675..+0.1025 (0.035 long), prop disc at +0.11, i.e. 0.0075
+         above the motor, the same clearance the tail rotor uses.
+         KEEP IN SYNC: tiltrotor_indi::ROTOR_PZ (TiltrotorIndiParams.hpp) is this
+         rotor z in FRD, so SDF +0.11 (FLU) == ROTOR_PZ -0.11. -->
+    <link name='motor_0'>
+      <pose>0.27 -0.35 0.085 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.0166704</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.0167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='motor_0_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='motor_0_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='motor_0_joint' type='revolute'>
+      <child>motor_0</child>
+      <parent>base_link</parent>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>0.</lower>
+          <upper>1.57</upper>
+        </limit>
+        <dynamics>
+          <friction>1.0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <link name='rotor_0'>
+      <pose>0.27 -0.35 0.11 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.000166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.000167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='rotor_0_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.005</length>
+            <!-- 0.10 -> 0.1294 (2026-08-31, adim 142). GERCEK pervane mesh'i
+                 (iris_prop_*.dae) 129.4 mm yaricapinda; collision silindiri
+                 100 mm'de kalmisti, yani disk fiziksel olarak OLDUGUNDAN
+                 KUCUK gorunuyordu. cad/dogrula.py bunu mesh'ten olcup
+                 yakaladi - check_model_clearance.py ise SDF'ten okudugu icin
+                 ayni hatayi tekrarliyordu. Yanlis yaricapla yapilan her
+                 aciklik olcumu 29 mm iyimserdi. -->
+            <radius>0.1294</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='rotor_0_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+          </mesh>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='rotor_0_joint' type='revolute'>
+      <child>rotor_0</child>
+      <parent>motor_0</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+
+    <!-- ============ Left wing rotor (tilting, above the wing) ============ -->
+    <link name='motor_1'>
+      <pose>0.27 0.35 0.085 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.0166704</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.0167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='motor_1_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='motor_1_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='motor_1_joint' type='revolute'>
+      <child>motor_1</child>
+      <parent>base_link</parent>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>0.</lower>
+          <upper>1.57</upper>
+        </limit>
+        <dynamics>
+          <friction>1.0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <link name='rotor_1'>
+      <pose>0.27 0.35 0.11 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.000166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.000167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='rotor_1_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.005</length>
+            <!-- 0.10 -> 0.1294 (2026-08-31, adim 142). GERCEK pervane mesh'i
+                 (iris_prop_*.dae) 129.4 mm yaricapinda; collision silindiri
+                 100 mm'de kalmisti, yani disk fiziksel olarak OLDUGUNDAN
+                 KUCUK gorunuyordu. cad/dogrula.py bunu mesh'ten olcup
+                 yakaladi - check_model_clearance.py ise SDF'ten okudugu icin
+                 ayni hatayi tekrarliyordu. Yanlis yaricapla yapilan her
+                 aciklik olcumu 29 mm iyimserdi. -->
+            <radius>0.1294</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='rotor_1_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://standard_vtol/meshes/iris_prop_cw.dae</uri>
+          </mesh>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='rotor_1_joint' type='revolute'>
+      <child>rotor_1</child>
+      <parent>motor_1</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+
+    <!-- ============ Tail rotor (tilting; the pusher in forward flight) ============ -->
+    <link name='motor_2'>
+      <pose>-0.55 0 0.045 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.0166704</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.0167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='motor_2_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='motor_2_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.035</length>
+            <radius>0.02</radius>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.175 0.175 0.175 1.0</ambient>
+          <diffuse>0.175 0.175 0.175 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='motor_2_joint' type='revolute'>
+      <child>motor_2</child>
+      <parent>base_link</parent>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>0.</lower>
+          <upper>0.349</upper>
+          <!-- 90 -> 20 DERECE (2026-08-30, adim 133). Fiziksel kisit: 0.10 m
+               yaricapli disk 90 derecede alt ucu z = motor_z - 0.10 = -0.055'e
+               iniyor ve kuyruk cubugunun icinden geciyor. Motoru yukseltmek
+               denendi (z 0.045 -> 0.135) ve GERI ALINDI: geri gecişte uc rotor
+               da 45 N'e doydu, BIG_M 0 -> 3843 (tau_y = r_z*Fx - r_x*Fz, ve
+               geri gecis tam olarak tilt'li rejimde yasiyor).
+               20 derece OLCUME dayaniyor: tam gorevde kuyruk tilt'i en fazla
+               2.5 derece kullanildi (ULog 05_47_06), yani sinir gercek
+               kullanimin 8 kati. 20 derecede cubuga aciklik 24 mm. -->
+        </limit>
+        <dynamics>
+          <friction>1.0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <link name='rotor_2'>
+      <pose>-0.55 0 0.07 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.000166704</iyy>
+          <iyz>0</iyz>
+          <izz>0.000167604</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <collision name='rotor_2_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.005</length>
+            <!-- 0.10 -> 0.1294 (2026-08-31, adim 142). GERCEK pervane mesh'i
+                 (iris_prop_*.dae) 129.4 mm yaricapinda; collision silindiri
+                 100 mm'de kalmisti, yani disk fiziksel olarak OLDUGUNDAN
+                 KUCUK gorunuyordu. cad/dogrula.py bunu mesh'ten olcup
+                 yakaladi - check_model_clearance.py ise SDF'ten okudugu icin
+                 ayni hatayi tekrarliyordu. Yanlis yaricapla yapilan her
+                 aciklik olcumu 29 mm iyimserdi. -->
+            <radius>0.1294</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <contact>
+            <ode />
+          </contact>
+          <friction>
+            <ode />
+          </friction>
+        </surface>
+      </collision>
+      <visual name='rotor_2_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+          </mesh>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+      <gravity>1</gravity>
+      <velocity_decay />
+      <self_collide>0</self_collide>
+    </link>
+    <joint name='rotor_2_joint' type='revolute'>
+      <child>rotor_2</child>
+      <parent>motor_2</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e+16</lower>
+          <upper>1e+16</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <link name="left_elevon">
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+        <pose>0 0.3 0 0.00 0 0.0</pose>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <visual name='left_elevon_visual'>
+        <pose>-0.105 0.004 -0.034 1.5707963268 0 3.1415926536</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://standard_vtol/meshes/x8_elevon_left.dae</uri>
+          </mesh>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+          <!-- COLLISION EKLENDI (2026-08-30, adim 133). Bu bes yuzeyin yalnizca
+           gorseli vardi, yani Gazebo icin FIZIKSEL OLARAK YOKTULAR: yere
+           degmiyor, hicbir seye carpmiyorlardi. Yan yatarak inen bir aracta
+           once kanat ucu / elevon degir, govde levhasi degil.
+           kp/kd govde kutusuyla ayni mertebede ama biraz yumusak: ince
+           kompozit bir yuzey rijit bir kutu gibi davranmaz. -->
+      <collision name='left_elevon_collision'>
+        <pose>-0.105 0.004 -0.034 1.5707963268 0 3.1415926536</pose>
+        <geometry>
+          <box>
+            <!-- DIKKAT (2026-08-31, adim 137): bu kutu MESH'in donmus pozunu
+                 (rpy = pi/2, 0, pi) miras aliyor, yani YEREL eksenler dunya
+                 eksenleriyle ayni DEGIL. Donus yerel y'yi dunya z'ye, yerel
+                 z'yi dunya -y'ye tasiyor.
+                 ILK YAZIMDA 0.09 0.34 0.012 verilmisti ve olculdugunde kutu
+                 dunyada 0.090 x 0.012 x 0.340 cikti - yani 34 cm'lik boyut
+                 DIKEY duruyordu: kanattan asagi sarkan bir levha. Elevon ince
+                 bir yuzeydir, kalinligi 12 mm olmali.
+                 Dogrusu: yerel (0.09, 0.012, 0.34) -> dunya (0.09, 0.34, 0.012). -->
+            <size>0.09 0.012 0.34</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>50000</kp>
+              <kd>2.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+</link>
+    <link name="right_elevon">
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+        <pose>0 -0.6 0 0.00 0 0.0</pose>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <visual name='right_elevon_visual'>
+        <pose>0.281 -1.032 -0.034 1.5707963268 0 3.1415926536</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://standard_vtol/meshes/x8_elevon_right.dae</uri>
+          </mesh>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+          <collision name='right_elevon_collision'>
+        <pose>0.281 -1.032 -0.034 1.5707963268 0 3.1415926536</pose>
+        <geometry>
+          <box>
+            <!-- DIKKAT (2026-08-31, adim 137): bu kutu MESH'in donmus pozunu
+                 (rpy = pi/2, 0, pi) miras aliyor, yani YEREL eksenler dunya
+                 eksenleriyle ayni DEGIL. Donus yerel y'yi dunya z'ye, yerel
+                 z'yi dunya -y'ye tasiyor.
+                 ILK YAZIMDA 0.09 0.34 0.012 verilmisti ve olculdugunde kutu
+                 dunyada 0.090 x 0.012 x 0.340 cikti - yani 34 cm'lik boyut
+                 DIKEY duruyordu: kanattan asagi sarkan bir levha. Elevon ince
+                 bir yuzeydir, kalinligi 12 mm olmali.
+                 Dogrusu: yerel (0.09, 0.012, 0.34) -> dunya (0.09, 0.34, 0.012). -->
+            <size>0.09 0.012 0.34</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>50000</kp>
+              <kd>2.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+</link>
+
+    <joint name='left_elevon_joint' type='revolute'>
+      <parent>base_link</parent>
+      <child>left_elevon</child>
+      <pose>-0.18 0.6 -0.005 0 0 0.265</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.78</lower>
+          <upper>0.78</upper>
+        </limit>
+        <dynamics>
+          <damping>1.000</damping>
+        </dynamics>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='right_elevon_joint' type='revolute'>
+      <parent>base_link</parent>
+      <child>right_elevon</child>
+      <pose>-0.18 -0.6 -0.005 0 0 -0.265</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.78</lower>
+          <upper>0.78</upper>
+        </limit>
+        <dynamics>
+          <damping>1.000</damping>
+        </dynamics>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+
+    <!-- ================= Empennage control surfaces =================
+         damping 1.0 + implicit_spring_damper is not decoration: these links carry a
+         token 1e-8 kg so they do not perturb the airframe's inertia, and an
+         underdamped near-massless link driven by LiftDrag diverges and takes the ODE
+         collision AABB with it. Same values the 2+1 model's elevons use. -->
+    <link name="left_elevator">
+      <pose>-0.79 0.15 -0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <visual name="left_elevator_visual">
+        <geometry>
+          <box>
+            <size>0.05 0.28 0.01</size>
+          </box>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+          <collision name='left_elevator_collision'>
+        <geometry>
+          <box>
+            <size>0.05 0.28 0.01</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>50000</kp>
+              <kd>2.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+</link>
+    <link name="right_elevator">
+      <pose>-0.79 -0.15 -0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <visual name="right_elevator_visual">
+        <geometry>
+          <box>
+            <size>0.05 0.28 0.01</size>
+          </box>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+          <collision name='right_elevator_collision'>
+        <geometry>
+          <box>
+            <size>0.05 0.28 0.01</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>50000</kp>
+              <kd>2.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+</link>
+    <!-- FIN ILE BIRLIKTE GERIYE ALINDI -0.83 -> -0.95 (2026-08-30, adim 132).
+         Rudder fininin arkasina mentesli; fin tasinirsa o da tasinmali, yoksa
+         mentese havada kalir. Rudder'in KENDISI kontrol yasasinda kalici olarak
+         KAPALI (a_rud = 0, adim 77) — yani bu yalnizca geometrik tutarlilik
+         icin, kontrol davranisini degistirmez. -->
+    <link name="rudder">
+      <pose>-0.87 0 0.10 0 0 0</pose>
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+      </inertial>
+        <enable_wind>true</enable_wind>
+      <visual name="rudder_visual">
+        <geometry>
+          <box>
+            <size>0.05 0.01 0.18</size>
+          </box>
+        </geometry>
+        <material>  <!-- Blue -->
+          <ambient>0 0 1 1.0</ambient>
+          <diffuse>0 0 1 1.0</diffuse>
+        </material>
+      </visual>
+          <collision name='rudder_collision'>
+        <geometry>
+          <box>
+            <size>0.05 0.01 0.18</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <kp>50000</kp>
+              <kd>2.0</kd>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+          <friction>
+            <ode>
+              <mu>0.6</mu>
+              <mu2>0.5</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+</link>
+    <joint name='left_elevator_joint' type='revolute'>
+      <parent>base_link</parent>
+      <child>left_elevator</child>
+      <pose>0.025 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.52</lower>
+          <upper>0.52</upper>
+        </limit>
+        <dynamics>
+          <damping>1.000</damping>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='right_elevator_joint' type='revolute'>
+      <parent>base_link</parent>
+      <child>right_elevator</child>
+      <pose>0.025 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.52</lower>
+          <upper>0.52</upper>
+        </limit>
+        <dynamics>
+          <damping>1.000</damping>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='rudder_joint' type='revolute'>
+      <parent>base_link</parent>
+      <child>rudder</child>
+      <pose>0.025 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.52</lower>
+          <upper>0.52</upper>
+        </limit>
+        <dynamics>
+          <damping>1.000</damping>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+      <physics>
+        <ode>
+          <implicit_spring_damper>1</implicit_spring_damper>
+        </ode>
+      </physics>
+    </joint>
+
+    <!-- ===================== Aerodynamics =====================
+         Wing coefficients are the tiltrotor models', unchanged. The tail surfaces are
+         new: this airframe puts pitch and yaw on a real empennage in forward flight
+         rather than on wing elevons alone. -->
+
+    <!-- Wing halves. The x8 elevons act as ailerons here (roll only) - pitch is the
+         tailplane's job - which is what CA_SV_CS0/1_TYPE 1/2 declare. -->
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <a0>0.05984281113</a0>
+      <cla>4.752798721</cla>
+      <cda>0.6417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0</cma_stall>
+      <cp>-0.05 0.3 0.05</cp>
+      <area>0.5</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>base_link</link_name>
+      <control_joint_name>
+        left_elevon_joint
+      </control_joint_name>
+      <control_joint_rad_to_cl>-4.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>left_elevon_joint</joint_name>
+      <sub_topic>servo_0</sub_topic>
+    </plugin>
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <a0>0.05984281113</a0>
+      <cla>4.752798721</cla>
+      <cda>0.6417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0</cma_stall>
+      <cp>-0.05 -0.3 0.05</cp>
+      <area>0.5</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>base_link</link_name>
+      <control_joint_name>
+        right_elevon_joint
+      </control_joint_name>
+      <control_joint_rad_to_cl>-4.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>right_elevon_joint</joint_name>
+      <sub_topic>servo_1</sub_topic>
+    </plugin>
+
+    <!-- Horizontal stabiliser, one panel per side, each carrying its elevator.
+         a0 = -0.2 gives the download a conventional tail needs to trim a nose-heavy
+         aircraft, matching the 2+1 model's elevator. area 0.048 = 0.16 m chord *
+         0.30 m semi-span. -->
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <a0>-0.2</a0>
+      <cla>4.752798721</cla>
+      <cda>0.6417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0</cma_stall>
+      <cp>-0.70 0.15 -0.04</cp>
+      <area>0.048</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>base_link</link_name>
+      <control_joint_name>
+        left_elevator_joint
+      </control_joint_name>
+      <control_joint_rad_to_cl>-12.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>left_elevator_joint</joint_name>
+      <sub_topic>servo_2</sub_topic>
+    </plugin>
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <a0>-0.2</a0>
+      <cla>4.752798721</cla>
+      <cda>0.6417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0</cma_stall>
+      <cp>-0.70 -0.15 -0.04</cp>
+      <area>0.048</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>base_link</link_name>
+      <control_joint_name>
+        right_elevator_joint
+      </control_joint_name>
+      <control_joint_rad_to_cl>-12.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>right_elevator_joint</joint_name>
+      <sub_topic>servo_3</sub_topic>
+    </plugin>
+
+    <!-- Fin and rudder. upward = 0 1 0 turns this panel on its side, so its "lift" is
+         a sideforce at x = -0.74 and yaws the aircraft. Unlike the 2+1 model's fin,
+         which is a bare surface, this one is driven: control_joint_name makes the
+         rudder a real actuator. area 0.032 = 0.16 m chord * 0.2 m height. -->
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <a0>0.0</a0>
+      <cla>4.752798721</cla>
+      <cda>0.6417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0</cma_stall>
+      <!-- cp fin ile birlikte -0.74 -> -0.86 (adim 132). Bu bir KONTROL
+           SABITIDIR: TiltrotorIndiParams.hpp SURF_CPX[4] ile SENKRON KALMALI. -->
+      <cp>-0.78 0 0.10</cp>
+      <area>0.032</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 1 0</upward>
+      <link_name>base_link</link_name>
+      <control_joint_name>
+        rudder_joint
+      </control_joint_name>
+      <control_joint_rad_to_cl>-6.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>rudder_joint</joint_name>
+      <sub_topic>servo_4</sub_topic>
+    </plugin>
+
+    <!-- ===================== Propulsion ===================== -->
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+      name="gz::sim::systems::MulticopterMotorModel">
+      <jointName>rotor_0_joint</jointName>
+      <linkName>rotor_0</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <rotorDragCoefficient>0.0000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>motor_0_joint</joint_name>
+      <sub_topic>servo_5</sub_topic>
+      <p_gain>100</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>0</d_gain>
+      <i_max>0.0</i_max>
+      <i_min>0.0</i_min>
+      <cmd_max>2</cmd_max>
+      <cmd_min>-2</cmd_min>
+      <err_max>0.2</err_max>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+      name="gz::sim::systems::MulticopterMotorModel">
+      <jointName>rotor_1_joint</jointName>
+      <linkName>rotor_1</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>1</motorNumber>
+      <rotorDragCoefficient>0.0000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>motor_1_joint</joint_name>
+      <sub_topic>servo_6</sub_topic>
+      <p_gain>100</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>0</d_gain>
+      <i_max>0.0</i_max>
+      <i_min>0.0</i_min>
+      <cmd_max>2</cmd_max>
+      <cmd_min>-2</cmd_min>
+      <err_max>0.2</err_max>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+      name="gz::sim::systems::MulticopterMotorModel">
+      <jointName>rotor_2_joint</jointName>
+      <linkName>rotor_2</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>2</motorNumber>
+      <rotorDragCoefficient>0.0000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>motor_2_joint</joint_name>
+      <sub_topic>servo_7</sub_topic>
+      <p_gain>100</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>0</d_gain>
+      <i_max>0.0</i_max>
+      <i_min>0.0</i_min>
+      <cmd_max>2</cmd_max>
+      <cmd_min>-2</cmd_min>
+      <err_max>0.2</err_max>
+    </plugin>
+
+    <!--
+      GOZLEM AMACLI (2026-07-28, Adim 18) — fizigi/kontrolu ETKILEMEZ.
+      Amac: mc_indi_tiltrotor'un ic `_u_actual` GOLGE aktuator modelini
+      (MulticopterIndiTiltrotor.cpp:414-421, 1. derece gecikme + slew clamp,
+      Gazebo'dan SIFIR geri besleme) tilt eklemlerinin GERCEK acisiyla
+      karsilastirabilmek. Gercek servo yukaridaki JointPositionController'dir:
+      P=100, I=D=0, cmd_max=2 (tork limiti), err_max=0.2 -> |hata| >= 0.02 rad
+      icin sabit 2 Nm ile doyan, TORK-SINIRLI 2. DERECE bir sistem; golge model
+      ise 1. derece. Sapmayi olcmek raporun §4 (Q) 1. onceligidir.
+      Yayin: /world/<world>/model/<model>/joint_state  (gz.msgs.Model)
+
+      ADIM 20 EKI (2026-07-28): rotor_{0,1,2}_joint de eklendi. Amac, GERCEK
+      rotor itkisini eklem HIZINDAN turetmek: T = motorConstant * w^2, burada
+      w = joint_velocity * rotorVelocitySlowdownSim (=20). Boylece golge
+      modelin ITKI kanallari da (Adim 18'de yalnizca tilt'ler karsilastirilmisti)
+      gercekle karsilastirilabilir. Bu onemli, cunku yaw torkunun bir bileseni
+      rotor reaksiyon torkudur (km*T). Ayrica yapisal bir supheli var: gz'nin
+      timeConstantUp/Down filtresi ROTOR HIZINA (w) uygulanirken, PX4'un golge
+      modeli ayni zaman sabitini ITKIYE (T) uyguluyor; T = kf*w^2 oldugundan
+      bunlar buyuk gecislerde ayrisir.
+    -->
+    <plugin filename="gz-sim-joint-state-publisher-system"
+      name="gz::sim::systems::JointStatePublisher">
+      <joint_name>motor_0_joint</joint_name>
+      <joint_name>motor_1_joint</joint_name>
+      <joint_name>motor_2_joint</joint_name>
+      <joint_name>rotor_0_joint</joint_name>
+      <joint_name>rotor_1_joint</joint_name>
+      <joint_name>rotor_2_joint</joint_name>
+    </plugin>
+    <static>0</static>
+  </model>
+</sdf>

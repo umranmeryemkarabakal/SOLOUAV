@@ -1,0 +1,39 @@
+# manifest.yaml — dokümantasyon konularının tek kaynağı
+#
+# Bu dosya Faz 1'de (haritalama) üretilir ve ELLE İNCELENİR.
+# Yanlış bir manifest ile 40 doküman üretmek bu iş akışındaki en pahalı hatadır.
+# Konuları yazmadan önce 15 dakikanızı buraya ayırın.
+#
+# Örnek konular silindi. Faz 1 bu listeyi gerçek kod tabanından üretecek.
+
+meta:
+  schema_version: 2
+  project: "Tilt-Rotor INDI Uçuş Kontrolü"
+
+  # Faz 1.5'te doldurulur — kod tabanı haritalandıktan SONRA.
+  # dir_template + file_template gerçek kaynaktır; pattern sadece etikettir.
+  # Değişkenler: {topic} {level} {group} {module}
+  # Seçenekler ve ölçütler: DOCS_SPEC §2, SKILL.md Faz 1.5
+  layout:
+    pattern: by-topic
+    dir_template: "docs/{topic}/"
+    file_template: "{level}-{topic}.md"
+    rationale: "TODO — Faz 1.5'te, manifest onaylandıktan sonra karar verilecek."
+
+  # Yazım sırası: depends_on grafiğinin topolojik sırası.
+  # Bağımsız konular önce yazılır ki sonrakiler onlara link verebilsin.
+
+topics: []   # Faz 1 (haritalama) dolduracak — elle yazmayın
+
+# ---------------------------------------------------------------------------
+# ALAN REFERANSI
+# ---------------------------------------------------------------------------
+# id          : kebab-case, dosya adlarında ve frontmatter'da kullanılır
+# title       : insan tarafından okunan başlık
+# levels      : [L1, L2, L3] alt kümesi. Zorlama seviye üretmeyin.
+# code        : glob desenleri; haritalama ve denetim bu yolları okur
+# methods     : bibliyografya araştırması bu listeden beslenir
+# depends_on  : yazım sırasını ve çapraz linkleri belirler
+# group       : yalnızca layout.pattern == grouped ise zorunlu
+# module      : yalnızca layout.pattern == mirror ise zorunlu (kök modül yolu)
+# rationale   : seviye seçimi veya kapsam kararı için gerekçe (opsiyonel)

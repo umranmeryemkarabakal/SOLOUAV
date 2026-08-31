@@ -1,0 +1,33 @@
+# mc_indi_tiltrotor golge-aktuator sapmasi olcumu (Adim 18, 2026-07-28)
+# DIKKAT: bu dosya varsa PX4 logger'i VARSAYILAN profili TAMAMEN degistirir
+# (logged_topics.cpp:560 if/else) -- ihtiyac duyulan her topic burada olmali.
+# Olcumu bitirince dosyayi SILIN, yoksa sonraki kosularin ulog'u eksik olur.
+tiltrotor_indi_status 0
+tiltrotor_indi_setpoint 0
+vehicle_angular_velocity 0
+vehicle_attitude 0
+vehicle_local_position 0
+vehicle_air_data 0
+actuator_servos 0
+actuator_motors 0
+actuator_armed 0
+vehicle_status 0
+# estimator_status_flags: madde (T) icin EKLENDI (Adim 39, 2026-08-03).
+# "attitude LOST (tilt=0)" ucus ortasinda uc kez tetiklendi ve geri gecis durum
+# makinesini sifirladi. tilt_aligned iki sarta bagli -- topic'in 3 s'den taze
+# olmasi VE cs_tilt_align -- ve EKF2 bu topic'i yalnizca ~1 Hz yayinliyor, yani
+# iki mekanizma da mumkun: (i) saglikli EKF'de topic bayatladi, (ii) EKF
+# hizalamayi gercekten dusurdu. Adim 38'de AYIRT EDILEMEDI cunku topic bu
+# profilde yoktu; diag_brake_reversal.py (B) bolumu "topic loglanmamis" yazdi.
+# Tahmin etmemek icin olcum: yayin ARALIKLARI + cs_tilt_align'in degisimi.
+estimator_status_flags 0
+# vehicle_land_detected: madde (1) icin EKLENDI (2026-08-29). Inis sirasinda
+# INDI artimlari yere karsi SARIYOR (nu_achieved sonsuza dek 0) ve T1 sifir
+# rayina cakiliyor. Onerilen duzeltme, artimi YALNIZCA yerdeyken dondurmak --
+# ucusta `landed` false oldugu icin ucus davranisi yapisal olarak degismez.
+# AMA once bu topic'in bu ARACTA dogru calistigi olculmeli: temasta true
+# oluyor mu, ve daha onemlisi HAVADA hic true oluyor mu (yanlis pozitif bir
+# kapiyi felakete cevirir). Modul bu detektorun ihtiyaci olan
+# vehicle_thrust_setpoint'i zaten yayinliyor (MulticopterIndiTiltrotor.hpp:115),
+# ama detektorun ciktisi bugune kadar HIC loglanmadi -- yani hic bakilmadi.
+vehicle_land_detected 0

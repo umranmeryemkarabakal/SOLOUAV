@@ -1,0 +1,49 @@
+
+______  __   __    ___ 
+| ___ \ \ \ / /   /   |
+| |_/ /  \ V /   / /| |
+|  __/   /   \  / /_| |
+| |     / /^\ \ \___  |
+\_|     \/   \/     |_/
+
+px4 starting.
+
+INFO  [px4] startup script: /bin/sh etc/init.d-posix/rcS 0
+INFO  [init] found model autostart file as SYS_AUTOSTART=4023
+INFO  [param] selected parameter default file parameters.bson
+INFO  [param] importing from 'parameters.bson'
+INFO  [parameters] BSON document size 404 bytes, decoded 404 bytes (INT32:14, FLOAT:6)
+INFO  [param] selected parameter backup file parameters_backup.bson
+INFO  [dataman] data manager file './dataman' size is 7872608 bytes
+INFO  [init] Gazebo simulator
+INFO  [init] starting gazebo with world: /home/umran/PX4-Autopilot/Tools/simulation/gz/worlds/default.sdf
+WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin.
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="imu_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L168]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="air_pressure_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L227]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="magnetometer_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L240]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+[1;33mWarning [Utils.cc:132][0m [/sdf/model[@name="tiltrotor_tailplane"]/link[@name="base_link"]/sensor[@name="navsat_sensor"]/gz_frame_id:/home/umran/PX4-Autopilot/Tools/simulation/gz/models/tiltrotor_indi/model.sdf:L262]: XML Element[gz_frame_id], child of element[sensor], not defined in SDF. Copying[gz_frame_id] as children of [sensor].
+INFO  [lockstep_scheduler] setting initial absolute time to 8000 us
+INFO  [gz_bridge] world: default, model name: tiltrotor_indi_0, simulation model: tiltrotor_indi
+INFO  [gz_bridge] Requested Model Position: 0,0,0,0,0,0
+INFO  [gz_bridge] Model position z is less or equal 0.0, moving upwards
+WARN  [vehicle_angular_velocity] no gyro selected, using sensor_gyro:0 1310988
+INFO  [commander] LED: open /dev/led0 failed (22)
+INFO  [tone_alarm] home set
+INFO  [uxrce_dds_client] init UDP agent IP:127.0.0.1, port:8888
+INFO  [mavlink] mode: Normal, data rate: 4000000 B/s on udp port 18570 remote port 14550
+INFO  [mavlink] mode: Onboard, data rate: 4000000 B/s on udp port 14580 remote port 14540
+INFO  [mavlink] mode: Onboard, data rate: 4000 B/s on udp port 14280 remote port 14030
+INFO  [mavlink] mode: Gimbal, data rate: 400000 B/s on udp port 13030 remote port 13280
+INFO  [logger] logger started (mode=all)
+INFO  [logger] Start file log (type: full)
+INFO  [logger] [logger] ./log/2026-07-24/18_49_36.ulg	
+INFO  [logger] Opened full log file: ./log/2026-07-24/18_49_36.ulg
+INFO  [mavlink] MAVLink only on localhost (set param MAV_{i}_BROADCAST = 1 to enable network)
+INFO  [mavlink] MAVLink only on localhost (set param MAV_{i}_BROADCAST = 1 to enable network)
+INFO  [px4] Startup script returned successfully
+INFO  [commander] [32mReady for takeoff![0m
+INFO  [commander] Armed by internal command	
+INFO  [tone_alarm] arming warning
+INFO  [commander] Takeoff detected	
+INFO  [commander] Disarmed by internal command	
+INFO  [tone_alarm] notify neutral

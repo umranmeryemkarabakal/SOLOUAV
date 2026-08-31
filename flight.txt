@@ -1,0 +1,122 @@
+TILTROTOR SITL — UÇUŞ KOMUTLARI
+28 Ağustos 2026'da baştan sona koşulup doğrulandı.
+Her adım gerçekten çalıştırıldı; yorumlardaki uyarılar o gün yaşanan
+arızalardan çıkarıldı, tahmin değil.
+
+═══════════════════════════════════════════════════════════════════
+0. KODU SENKRONLA VE DERLE
+═══════════════════════════════════════════════════════════════════
+# Depo, kaynağın kopyasını tutar; DERLENEN otopilot ağacındaki kopyadır.
+# .msg dosyalarını atlama: depodaki C++ status.bt_tilt_floor, fw_state,
+# fw_tilt alanlarına yazar, setpoint'ten fw_enable okur. Eski mesaj
+# tanımıyla derleme "has no member named 'bt_tilt_floor'" ile durur.
+
+cp ~/tiltrotor_project_updates/{MulticopterIndiTiltrotor.cpp,MulticopterIndiTiltrotor.hpp,TiltrotorIndiControl.hpp,TiltrotorIndiParams.hpp} \
+   ~/PX4-Autopilot/src/modules/mc_indi_tiltrotor/
+cp ~/tiltrotor_project_updates/{TiltrotorIndiStatus.msg,TiltrotorIndiSetpoint.msg} \
+   ~/PX4-Autopilot/msg/
+cd ~/PX4-Autopilot && make px4_sitl_default
+
+═══════════════════════════════════════════════════════════════════
+1. ÖN KOŞULU DOĞRULA
+═══════════════════════════════════════════════════════════════════
+# Eksikse her uçuş ~10 sn'de "auto preflight disarming" ile kesilir.
+grep -q "_vehicle_thrust_setpoint_pub" \
+  ~/PX4-Autopilot/src/modules/mc_indi_tiltrotor/MulticopterIndiTiltrotor.hpp \
+  && echo "OK" || echo "EKSİK"
+
+═══════════════════════════════════════════════════════════════════
+2. TEMİZLE  (eski komut çalışmıyordu — dikkat)
+═══════════════════════════════════════════════════════════════════
+# DIKKAT: sürecin komut satırı  ../../../../bin/px4 -d  olduğu için
+# NE 'px4_sitl_default/bin/px4' NE DE 'px4_sitl_default' eşleşir.
+# Tek çalışan desen 'bin/px4':
+# süreç ../../../../bin/px4 göreli yoluyla başlatıldığı için komut
+# satırında o dizgi hiç geçmez. Belirti: Gazebo ölür, PX4 yaşar,
+# sonraki başlatma sessizce "Exit 255" verir ve log'a yalnız
+# "PX4 server already running for instance 0" yazar.
+
+pkill -9 -f 'bin/px4'; pkill -9 -f 'gz sim'; rm -f /tmp/px4-sock-0
+sleep 3
+
+# DOĞRULA — pgrep -f "bin/px4" kendi kabuk komutuna eşleşip yanlış
+# "ayakta" der. ps ile tam komut satırına bak:
+ps -eo pid,cmd | grep -E "gz sim|bin/px4" | grep -v grep
+
+═══════════════════════════════════════════════════════════════════
+3. SITL'İ BAŞLAT
+═══════════════════════════════════════════════════════════════════
+cd ~/PX4-Autopilot/build/px4_sitl_default/src/modules/simulation/gz_bridge
+PX4_SIM_MODEL=gz_tiltrotor_indi HEADLESS=1 setsid nohup ../../../../bin/px4 -d \
+  > /tmp/px4.log 2>&1 < /dev/null &
+disown
+
+# setsid şart: setsid'siz arka plan süreci, onu başlatan komut bitince
+# süreç grubuyla birlikte temizlenir.
+
+until grep -aq 'Ready for takeoff' /tmp/px4.log; do sleep 3; done
+
+# Süreçlerin GERÇEKTEN ayakta olduğunu gör (ikisi de olmalı):
+ps -eo pid,etimes,cmd | grep -E "/bin/px4 -d|gz sim --verbose" | grep -v grep
+
+═══════════════════════════════════════════════════════════════════
+4. PREFLIGHT'I DOĞRULA  (uçurmadan önce)
+═══════════════════════════════════════════════════════════════════
+export PATH=~/PX4-Autopilot/build/px4_sitl_default/bin:$PATH
+px4-commander check          # "Preflight check: OK" görmelisin
+
+# "Preflight Fail: Yaw estimate error" görürsen:
+#   Önce PX4'ün gerçekten ayakta olduğunu doğrula (adım 3) — bu hatanın
+#   en yaygın sebebi PX4'ün hiç açılmamış olması, parametre değil.
+#   Gerçekten parametre sızıntısıysa (RUNBOOK §5):
+#     rm -f ~/PX4-Autopilot/build/px4_sitl_default/rootfs/parameters*.bson
+#   Silme sonrası İLK açılış ölçüm sayılmaz — EKF kalibrasyonu sıfırdan
+#   öğrendiği için geç yakınsar. Bir kez açıp kapat, ikincisini kullan.
+#
+# NOT: EKF yaw 90°, Gazebo yer gerçeği 0° gösterir. Bu HATA DEĞİL —
+# Gazebo doğu-kuzey-yukarı, PX4 kuzey-doğu-aşağı düzeni kullanır.
+
+═══════════════════════════════════════════════════════════════════
+5. GAZEBO ARAYÜZÜ  (izlemek istersen)
+═══════════════════════════════════════════════════════════════════
+export DISPLAY=:1
+setsid nohup gz sim -g > /tmp/gzgui.log 2>&1 < /dev/null &
+disown
+
+# "libEGL warning: egl: failed to create dri2 screen" ÖLÜMCÜL DEĞİL,
+# arayüz bu uyarıyla çalışır. Arayüz kapanıyorsa sebep setsid eksikliği.
+# Kamera kilidi (servis geç kaydolur, birkaç deneme gerekebilir):
+gz service -s /gui/follow --reqtype gz.msgs.StringMsg \
+  --reptype gz.msgs.Boolean --timeout 15000 --req 'data: "tiltrotor_indi_0"'
+gz service -s /gui/follow/offset --reqtype gz.msgs.Vector3d \
+  --reptype gz.msgs.Boolean --timeout 15000 --req 'x: -4.0, y: 0.0, z: 1.5'
+# Servis zaman aşarsa: sol paneldeki model listesinde tiltrotor_indi_0'a
+# sağ tıkla → Follow.
+
+═══════════════════════════════════════════════════════════════════
+6. UÇUR
+═══════════════════════════════════════════════════════════════════
+export PATH=~/PX4-Autopilot/build/px4_sitl_default/bin:$PATH
+cd ~/tiltrotor_project_updates/sitl
+
+python3 smoke_test.py            # arm + 3 m hover  — MEVCUT SITL'i kullanır
+python3 run_transition_test.py   # hover → ileri geçiş
+python3 run_backtrans_test.py    # hover → seyir → hover, tam tur
+python3 run_lockup_check.py      # zorunlu regresyon kapısı
+
+# smoke_test.py dışındakiler SITL'i KENDİLERİ kurup kapatır; koştuklarında
+# adım 3'teki örnek ve Gazebo penceresi kapanır. İzleyerek koşmak istersen
+# betik SITL'ini kurduktan sonra adım 5'i tekrarla.
+
+═══════════════════════════════════════════════════════════════════
+7. KAPATMA
+═══════════════════════════════════════════════════════════════════
+pkill -9 -f 'bin/px4'; pkill -9 -f 'gz sim'; rm -f /tmp/px4-sock-0
+
+═══════════════════════════════════════════════════════════════════
+BİLİNEN SORUN
+═══════════════════════════════════════════════════════════════════
+run_transition_test.py:130  u_actual'ın 6 elemanlı olmasını bekler, ama
+güncel mesajda 11 (3 itki + 3 tilt + 5 yüzey). Koşul tutmayınca tilt
+kaydına nan yazar; "Son ortalama tilt: nan deg" bundandır. Uçuş sağlıklı,
+ölçüm eksik. Düzeltmesi tek satır:  == 6  yerine  >= 6
