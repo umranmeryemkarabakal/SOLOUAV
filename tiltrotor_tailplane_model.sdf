@@ -315,10 +315,16 @@
       </visual>
       <!-- Strut tying the stabiliser to the boom. -->
       <visual name='tailplane_strut'>
-        <pose>-0.70 0 -0.015 0 0 0</pose>
+        <!-- Strut'un ust yuzu cubugun ust yuzuyle HIZALI (z=0.000).
+             ONCEDEN z -0.015 merkez / 0.06 boy idi, yani ust yuzu +0.015'te
+             ve cubugun 15 mm USTUNE tasiyordu. Fin -0.90/z0.12'deyken zararsizdi
+             (5 mm bosluk); fin -0.78/z0.10'a alininca (alt kenar 0.000) 4.9 cm^3
+             GIRISIM olustu ; cad/dogrula.py yakaladi. Strut'un tek isi
+             tailplane'i cubuga baglamak; cubugun ustune tasmasinin islevi yok. -->
+        <pose>-0.70 0 -0.0225 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.05 0.03 0.06</size>
+            <size>0.05 0.03 0.045</size>
           </box>
         </geometry>
         <material> <!-- DarkGrey-->

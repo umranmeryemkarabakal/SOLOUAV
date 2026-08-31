@@ -39,8 +39,8 @@ BOXES = [  # (ad, merkez, boyut)
     # diski 90 derecede cubugun ICINDEN geciyordu. model.sdf ile senkron.
     # UZATILDI 0.62 -> 0.76 m (Adim 139): fin -0.86'ya tasininca cubugun
     # ucundan tasiyordu; gercek aracta desteklenmeyen konsol demekti.
-    ('tail_boom',           (-0.59,  0.00, -0.010), (0.80, 0.04, 0.02)),
-    ('tailplane_strut',     (-0.70,  0.00, -0.015), (0.05, 0.03, 0.06)),
+    ('tail_boom',           (-0.545, 0.00, -0.010), (0.71, 0.04, 0.02)),
+    ('tailplane_strut',     (-0.70,  0.00, -0.0225), (0.05, 0.03, 0.045)),
     # KISALTILDI 0.05 -> 0.03, merkez 0.22 -> 0.205 (Adim 132): TAM TILT'te
     # (90 deg, seyir duruşu) disk kendi pilonunun icinden geciyordu.
     ('pylon_right',         ( 0.2175, -0.35, 0.040), (0.105, 0.03, 0.06)),
@@ -58,14 +58,14 @@ FOILS = [  # (ad, merkez, kiriş(x), açıklık, kalınlık, düşey mi)
     ('tailplane',           (-0.70, 0.00, -0.040), 0.16, 0.60, 0.012, False),
     # GERIYE ALINDI -0.74 -> -0.86 (Adim 132): disk tilt=0'da, yani hover'in
     # TAMAMINDA fininin icinden geciyordu.
-    ('vertical_stabiliser', (-0.90, 0.00,  0.120), 0.16, 0.20, 0.020, True),
+    ('vertical_stabiliser', (-0.78, 0.00,  0.100), 0.16, 0.20, 0.020, True),
 ]
 
 FLAPS = [  # (ad, merkez, kiriş, açıklık, kalınlık, düşey mi, menteşe x/z)
     ('elevator_left',  ( -0.79,  0.15, -0.040), 0.05, 0.28, 0.010, False, -0.765),
     ('elevator_right', ( -0.79, -0.15, -0.040), 0.05, 0.28, 0.010, False, -0.765),
     # Fin ile BIRLIKTE geriye (Adim 132); mentese x'i de ayni kadar kaydi.
-    ('rudder',         ( -0.99,  0.00,  0.120), 0.05, 0.18, 0.010, True,  -0.965),
+    ('rudder',         ( -0.87,  0.00,  0.100), 0.05, 0.18, 0.010, True,  -0.845),
 ]
 
 MOTORS = [  # (ad, merkez, r, L)

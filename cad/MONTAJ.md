@@ -189,3 +189,26 @@ yüzden pilon kanadın üstünde kaldığı sürece **açıklık boyunca hiçbir
 `arm_ratio = 2·ROTOR_PX[0]/|ROTOR_PX[2]|` 0,677 → **0,831**. Hover bölüşümü
 buna göre kayıyor; `TiltrotorIndiControl.hpp` içinde otomatik türetiliyor,
 elle güncellenecek ayrı bir sabit yok. Kuyruk kolu ve `r_z` değişmedi.
+
+## Adım 154 — kuyruk kolu, fin ve strut (31 Ağustos 2026)
+
+CAD, SDF'in Adım 154 hâline eşitlendi. Değişenler:
+
+| parça | önce | sonra | neden |
+|---|---|---|---|
+| kuyruk motoru/rotoru | x=−650 | **x=−550** | kuyruk trim payı %29 → %33; iniş sıçramasında kuyruk 0 N'e dayanıyordu |
+| fin | x=−900, z=120 | **x=−780, z=100** | öne alındı (kullanıcı kararı); z indirildi çünkü **20 mm havada asılıydı** |
+| rudder | x=−990, z=120 | **x=−870, z=100** | fin ile birlikte |
+| çubuk | 800 mm, merkez −590 | **710 mm, merkez −545** | fin öne gelince arka uzantı gereksizleşti |
+| tailplane strut | z merkez −15, boy 60 | **z merkez −22,5, boy 45** | üst yüzü çubuğun 15 mm üstüne taşıyordu; fin inince **4,9 cm³ girişim** oluştu |
+
+**Strut girişimini `cad/dogrula.py` yakaladı**, SDF denetimleri değil. Strut'un
+tek işi tailplane'i çubuğa bağlamak; çubuğun üstüne taşmasının işlevi yoktu.
+Üst yüzü çubuğun üst yüzüyle (z=0,000) hizalandı.
+
+**Fin neden 20 mm havadaydı:** bütün açıklık denetimleri **çakışma** arıyordu,
+hiçbiri **boşluk** aramıyordu. Artık `check_model_clearance.py` içindeki
+`connectivity_audit()` köke ulaşılabilirlik arıyor.
+
+Doğrulama: **61 geçti, 0 CAD hatası**, MATLAB 8/8, tam otonom görev SITL'de
+10 evrenin 10'u (157 s).
