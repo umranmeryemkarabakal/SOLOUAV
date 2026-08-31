@@ -1458,7 +1458,20 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 	req_fw = false;
 	req_land = false;
 	req_home = false;
-	z_sp_out = z_datum - MSN_CLIMB_ALT;
+	// IRTIFA HEDEFI: ASLA ALCALMA KOMUT ETME (2026-08-31 duzeltmesi).
+	// NED'de z asagi pozitif, yani fminf DAHA YUKSEK irtifayi secer.
+	//
+	// OLCULEN ARIZA: sabit hedef (z_datum - MSN_CLIMB_ALT) kullanildiginda
+	// ruzgarli kosumda GERI GECISTE doyum %44.2 ve BIG_M 2519 olctu -- hepsi
+	// KUYRUK rotorunda. Sebep: arac sabit kanat fazinda 47.8 m'ye tirmaniyor,
+	// geri gecise girerken hedef hala 40 m; yani tahsisat 16 m/s'den fren
+	// yaparken USTUNE 7.8 m'lik alcalma talebi biniyor.
+	//
+	// Bu kural betikten geliyor (run_mission_test.py: `min(z_sp, z_now)`) ve
+	// oradaki not aynen gecerli: "yoksa yukarida kacinilan basamak bu
+	// dongunun ILK tikinda geri gelirdi". Tirmanisi engellemez: yerde
+	// z_now ~ 0, hedef -40, fminf yine -40 verir.
+	z_sp_out = fminf(z_datum - MSN_CLIMB_ALT, z_now);
 	// YAW: varsayilan olarak gorev basindaki istikamet korunur.
 	yaw_sp_out = home_yaw;
 
