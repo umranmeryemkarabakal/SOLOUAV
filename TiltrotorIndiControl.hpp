@@ -1422,17 +1422,21 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 			     MissionState &state, float &phase_timer, float dt,
 			     bool &req_pos_hold, bool &req_ft, bool &req_bt,
 			     bool &req_fw, bool &req_land, float &z_sp_out,
-			     float z_datum, float z_now)
+			     float z_datum, float z_now,
+			     float pos_x, float pos_y, float &home_x, float &home_y, float &home_yaw,
+			     bool &req_home, float yaw_now, float &yaw_sp_out)
 {
 	if (!enable) {
 		state = MissionState::IDLE;
 		phase_timer = 0.f;
+		req_home = false;
 		req_pos_hold = false;
 		req_ft = false;
 		req_bt = false;
 		req_fw = false;
 		req_land = false;
 		z_sp_out = z_now;
+		yaw_sp_out = yaw_now;
 		return;
 	}
 
@@ -1452,12 +1456,20 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 	req_bt = false;
 	req_fw = false;
 	req_land = false;
+	req_home = false;
 	z_sp_out = z_datum - MSN_CLIMB_ALT;
+	// YAW: varsayilan olarak gorev basindaki istikamet korunur.
+	yaw_sp_out = home_yaw;
 
 	const bool timed_out = phase_timer > MSN_PHASE_TIMEOUT_S;
 
 	switch (state) {
 	case MissionState::IDLE:
+		// EVI YAKALA: gorev basladigi an neredeyse orasi evdir.
+		home_x = pos_x;
+		home_y = pos_y;
+		home_yaw = yaw_now;
+		yaw_sp_out = yaw_now;
 		state = MissionState::CLIMB;
 		phase_timer = 0.f;
 		break;
@@ -1538,17 +1550,48 @@ inline void missionSequencer(bool enable, float agl, float v_h,
 		// ft DUSER, bt KALKAR (betikteki 4. adimla ayni).
 		req_bt = true;
 
-		if (bt == BtState::HANDOFF) {
-			state = MissionState::SETTLE;
-			phase_timer = 0.f;
-
-		} else if (timed_out) {
-			// Geri gecis de tikandiysa yapilacak tek sey inmek.
-			state = MissionState::SETTLE;
+		if (bt == BtState::HANDOFF || timed_out) {
+			state = MissionState::RETURN;
 			phase_timer = 0.f;
 		}
 
 		break;
+
+	case MissionState::RETURN: {
+			// EVE DON (Adim 155). Olculdu: donus olmadan arac 683 m uzaga
+			// gidip ORAYA iniyordu. Pozisyon dongusu hover-only ve <=3 m/s'de
+			// dogrulanmis; hedefi ev yapmak yeterli, yeni bir mekanizma yok.
+			req_pos_hold = true;
+			req_home = true;
+
+			const float dx = pos_x - home_x;
+			const float dy = pos_y - home_y;
+			const float dist = sqrtf(dx * dx + dy * dy);
+
+			// BURNU EVE CEVIR (2026-08-31 duzeltmesi). Olculdu: bu satir
+			// olmadan arac 683 m'yi GERI GERI geliyordu -- govde cercevesinde
+			// ileri hiz -2.93 m/s, burun evden 163 derece sapik. Pozisyon
+			// dongusu araci hedefe goturur ama burnunu CEVIRMEZ; yon komutu
+			// ayri verilmeli.
+			// YAKINDA DONDURME: mesafe kuculunce kerteriz gurultulenir ve
+			// arac hedefin uzerinde donmeye baslar. MSN_HOME_R'nin iki kati
+			// altinda yon komutu DONDURULUR.
+			if (dist > 2.f * MSN_HOME_R) {
+				yaw_sp_out = atan2f(home_y - pos_y, home_x - pos_x);
+
+			} else {
+				yaw_sp_out = yaw_now;
+			}
+
+			// AYRI ZAMAN SINIRI: 683 m'yi 3 m/s ile katetmek ~228 s surer,
+			// yani genel 60 s'lik sinir burada anlamsizdir.
+			if (dist < MSN_HOME_R || phase_timer > MSN_RETURN_TIMEOUT_S) {
+				state = MissionState::SETTLE;
+				phase_timer = 0.f;
+			}
+
+			break;
+		}
 
 	case MissionState::SETTLE:
 		req_pos_hold = true;

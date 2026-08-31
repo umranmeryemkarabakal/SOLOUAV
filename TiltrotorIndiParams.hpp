@@ -920,7 +920,7 @@ enum class LandState : int32_t { IDLE = 0, DESCEND = 1, FLARE = 2, TOUCHDOWN = 3
 // cunku onlar bir OLAYI degil bir SUREYI bekliyor.
 enum class MissionState : int32_t {
 	IDLE = 0, CLIMB = 1, HOVER = 2, FWD = 3, CRUISE = 4,
-	FW = 5, FW_CRUISE = 6, BACK = 7, SETTLE = 8, LAND = 9, DONE = 10
+	FW = 5, FW_CRUISE = 6, BACK = 7, RETURN = 8, SETTLE = 9, LAND = 10, DONE = 11
 };
 
 // Sayilar run_mission_test.py'den BIREBIR tasindi (CLIMB_M, SETTLE_S,
@@ -931,6 +931,17 @@ static constexpr float MSN_SETTLE_S = 12.0f;     // s, hover oturma
 static constexpr float MSN_CRUISE_S = 15.0f;     // s, tilt-seyir
 static constexpr float MSN_FW_CRUISE_S = 20.0f;  // s, sabit kanat
 static constexpr float MSN_LAND_VH = 1.0f;       // m/s, altinda inise gecilir
+
+// EVE DONUS (2026-08-31, Adim 155). Kullanici olcumu: gorev 683 m uzaga gidip
+// ORAYA iniyordu ("ucak alandan cikiyor"). Eski test betiginde de donus yoktu
+// -- o bir YETENEK testiydi, gidis-donus degil. Otonom bir gorev icin eksik.
+//
+// DONUS MULTIKOPTER MODUNDA: pozisyon dongusu hover-only ve <=3 m/s'de
+// DOGRULANMIS (POS_V_MAX). Ikinci bir ileri gecis + 180 derece donus cok daha
+// hizli olurdu ama yepyeni bir yetenek demek; burada DOGRULANMIS mekanizma
+// kullaniliyor. Bedeli sure: 683 m / 3 m/s ~ 228 s.
+static constexpr float MSN_HOME_R = 8.0f;        // m, eve varildi sayilir
+static constexpr float MSN_RETURN_TIMEOUT_S = 400.0f;  // s, donus icin ayri sinir
 static constexpr float MSN_PHASE_TIMEOUT_S = 60.0f;  // s, olay beklerken ust sinir
 
 // SABIT KANAT AYAGI acilabilir/kapatilabilir. Betikte INDI_FW ile ayni rol;

@@ -949,12 +949,15 @@ MulticopterIndiTiltrotor::Run()
 						 _ft_state, _bt_state, _fw_state, _land_state,
 						 _mission_state, _mission_timer, dt,
 						 req_pos_hold, req_ft, req_bt, req_fw, req_land,
-						 msn_z_sp, _z_datum, lpos.z);
+						 msn_z_sp, _z_datum, lpos.z,
+						 lpos.x, lpos.y, _msn_home_x, _msn_home_y,
+						 _msn_home_yaw, _msn_req_home, att_now(2), yaw_sp);
 		z_sp = msn_z_sp;
 
 	} else {
 		_mission_state = tiltrotor_indi::MissionState::IDLE;
 		_mission_timer = 0.f;
+		_msn_req_home = false;
 	}
 
 	// Degraded: do not push a body-x force when you no longer know where you are.
@@ -1239,6 +1242,13 @@ MulticopterIndiTiltrotor::Run()
 	// valid; without it the loop would integrate garbage into a tilt command.
 	// The back-transition's HANDOFF state requests it too -- that handoff is the
 	// whole point of the manoeuvre (blocker B5).
+	// RETURN boyunca hedef EV olarak TUTULUR. Yakalama yalnizca yukselen
+	// kenarda oldugu icin, pos_hold zaten aktifken RETURN'e girilirse hedef
+	// eski yerinde kalirdi.
+	if (_msn_req_home && _pos_hold_active) {
+		_pos_sp = matrix::Vector2f(_msn_home_x, _msn_home_y);
+	}
+
 	const bool pos_hold = (req_pos_hold || _bt_req_pos_hold) && pos_ok;
 
 	// Item (S) residual, measured rather than assumed: the handoff is requested on
@@ -1296,11 +1306,17 @@ MulticopterIndiTiltrotor::Run()
 			}
 
 		} else {
-			_pos_sp = matrix::Vector2f(lpos.x, lpos.y);
+			// EVE DONUS (Adim 155): dizici RETURN'deyken hedef MEVCUT KONUM
+			// DEGIL, gorev basindaki EV konumudur. Aksi halde arac nerede
+			// yakalandiysa orada asili kalir -- olculdu: 683 m uzakta.
+			_pos_sp = _msn_req_home
+				  ? matrix::Vector2f(_msn_home_x, _msn_home_y)
+				  : matrix::Vector2f(lpos.x, lpos.y);
 			_pos_integral_v.setZero();
 			_pos_hold_active = true;
 			_pos_hold_refused = false;
-			PX4_INFO("pos_hold: holding x=%.2f y=%.2f", (double)_pos_sp(0), (double)_pos_sp(1));
+			PX4_INFO("pos_hold: holding x=%.2f y=%.2f%s", (double)_pos_sp(0), (double)_pos_sp(1),
+				 _msn_req_home ? " (EVE DONUS)" : "");
 
 			if (_bt_req_pos_hold && _bt_handoff_wait > 0.5f) {
 				// The item (S) residual actually cost something on this flight.

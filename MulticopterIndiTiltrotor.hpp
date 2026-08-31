@@ -246,6 +246,10 @@ private:
 	// GOREV DIZICISI (Adim 154, madde B0). Tek bayrakla tam gorev.
 	tiltrotor_indi::MissionState _mission_state{tiltrotor_indi::MissionState::IDLE};
 	float _mission_timer{0.f};
+	float _msn_home_x{0.f};
+	float _msn_home_y{0.f};
+	float _msn_home_yaw{0.f};
+	bool _msn_req_home{false};
 	float _land_step_timer{0.f};
 	float _land_touch_dwell{0.f};
 	float _land_stall_dwell{0.f};

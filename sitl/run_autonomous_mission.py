@@ -23,22 +23,37 @@ KULLANIM
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import time
 
 import indi_sitl_common as sc
 
+# OZEL KONULARI LOGLA. Bunu ilk yazimda ATLADIM ve olculdu: uc otonom kosumun
+# ulog'unda tiltrotor_indi_status YOK, yani mission_state/land_state sonradan
+# incelenemedi. run_mission_test.py bunu zaten yapiyordu; ayni sey burada da
+# gerekli, cunku dizicinin dogru calistigini KANITLAYAN sey o konu.
+LOG_TOPICS_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "logger_topics_shadow.txt")
+LOG_TOPICS_DST_DIR = os.path.expanduser(
+    "~/PX4-Autopilot/build/px4_sitl_default/rootfs/etc/logging")
+LOG_TOPICS_DST = os.path.join(LOG_TOPICS_DST_DIR, "logger_topics.txt")
+
 WORLD = os.environ.get("INDI_WORLD", "default")
-TIMEOUT_S = float(os.environ.get("INDI_MSN_TIMEOUT", "420"))
+# Eve donus multikopter modunda ve <=3 m/s (POS_V_MAX), yani 600+ m geri
+# gelmek ~230 s surer. Sinir buna gore.
+TIMEOUT_S = float(os.environ.get("INDI_MSN_TIMEOUT", "700"))
 
 MSN = {0: "IDLE", 1: "CLIMB", 2: "HOVER", 3: "FWD", 4: "CRUISE", 5: "FW",
-       6: "FW_CRUISE", 7: "BACK", 8: "SETTLE", 9: "LAND", 10: "DONE"}
+       6: "FW_CRUISE", 7: "BACK", 8: "RETURN", 9: "SETTLE", 10: "LAND", 11: "DONE"}
 LAND = {0: "IDLE", 1: "DESCEND", 2: "FLARE", 3: "TOUCHDOWN"}
 
 
 def main() -> int:
     out_dir = os.path.dirname(os.path.abspath(__file__))
     log_path = os.path.join(out_dir, "px4_autonomous.log")
+    os.makedirs(LOG_TOPICS_DST_DIR, exist_ok=True)
+    shutil.copyfile(LOG_TOPICS_SRC, LOG_TOPICS_DST)
     px4 = sc.Px4Client()
     sc.launch_sitl("gz_tiltrotor_indi", log_path, world=WORLD)
 
@@ -56,7 +71,7 @@ def main() -> int:
                              "1", "1", "0", "0", "0", "0", "0", "0", "1"])
 
         print(f"GOREV BASLADI -- tek bayrak (mission_enable), dunya: {WORLD}")
-        print(f"{'t':>7} {'gorev':>10} {'inis':>10} {'agl':>7} {'v_h':>6} {'tilt':>6}")
+        print(f"{'t':>7} {'gorev':>10} {'inis':>10} {'agl':>7} {'v_h':>6} {'tilt':>6} {'eve uzak':>8}")
 
         t0 = time.monotonic()
         prev = None
@@ -79,12 +94,13 @@ def main() -> int:
 
             if ms != prev:
                 t = time.monotonic() - t0
+                home_d = (lp.get("x", 0.0) ** 2 + lp.get("y", 0.0) ** 2) ** 0.5
                 print(f"{t:7.1f} {MSN.get(ms,'?'):>10} {LAND.get(ls,'?'):>10} "
-                      f"{agl:7.2f} {vh:6.2f} {tilt:6.1f}")
+                      f"{agl:7.2f} {vh:6.2f} {tilt:6.1f} {home_d:8.1f}")
                 seen.append(MSN.get(ms, "?"))
                 prev = ms
 
-            if ms == 10:      # DONE
+            if ms == 11:      # DONE
                 break
 
             time.sleep(1.0)
@@ -93,7 +109,7 @@ def main() -> int:
         print(f"\nGECILEN EVRELER: {' -> '.join(seen)}")
 
         # GECME OLCUTU: gorev DONE'a ulasti ve butun evrelerden gecti.
-        need = ["CLIMB", "HOVER", "FWD", "CRUISE", "BACK", "SETTLE", "LAND", "DONE"]
+        need = ["CLIMB", "HOVER", "FWD", "CRUISE", "BACK", "RETURN", "SETTLE", "LAND", "DONE"]
         missing = [p for p in need if p not in seen]
         ok = not missing
 
@@ -110,6 +126,11 @@ def main() -> int:
 
     finally:
         sc.kill_sitl()
+
+        try:
+            os.remove(LOG_TOPICS_DST)
+        except FileNotFoundError:
+            pass
 
 
 if __name__ == "__main__":
