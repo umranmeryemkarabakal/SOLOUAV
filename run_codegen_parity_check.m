@@ -340,6 +340,14 @@ feats = {
     'seyir hizi (Adim 46)',     'cruise_speed_loop.m',        'fx_track',        'sf_cruise_speed_loop.m'
     'seyir pitch (Adim 53)',    'cruise_pitch_loop.m',        'th_ff',           'sf_cruise_pitch_loop.m'
     'sabit kanat (Adim 75)',    'sitl_experiments/fixedwing_control_law.m', 'Kp_hdg', 'sf_fixedwing_law.m'
+    % --- Adim 160'ta eklendi. ONCESINDE BU LISTE KOR NOKTAYDI: Adim 153/154/157'de
+    % uc mekanizma yalnizca PX4 C++'a eklendi ve TEST C yine "0 eksik" dedi,
+    % cunku liste ELLE tutuluyor ve yeni satirlar yazilmamisti. Bir mekanizma
+    % tasinirken buraya da satir eklenmelidir.
+    'dikey itki tavani (145)',  'indi_attitude_controller.m', 'land_tz_max',     'sf_wls_alloc.m'
+    'kuyruk itki tabani (157)', 'indi_attitude_controller.m', 'land_tail_floor', 'sf_wls_alloc.m'
+    'inis dizisi (Adim 153)',   'landing_sequence.m',         'flare_alt',       'sf_landing_sequence.m'
+    'gorev dizicisi (Adim 154)','mission_sequencer.m',        'climb_alt',       'sf_mission_sequencer.m'
 };
 % NOT: 'kontrol yuzeyleri' bu listede YOK ve olmamali -- ucan yolda (PX4)
 % SURF_ENABLE = false, yani codegen'de bulunmamasi DOGRU (Adim 125, TEST B).

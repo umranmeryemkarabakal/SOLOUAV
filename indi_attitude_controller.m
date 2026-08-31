@@ -389,6 +389,25 @@ if nargin >= 13 && ~isempty(agl) && isfinite(agl) ...
     % saglikli inislerde esigi asan ornek %0.0-1.1, arizali kosumda %16.7.
     % Uc rotor BIRLIKTE olceklenir -> moment ORANLARI korunur, kesilen net
     % kaldirmadir.
+    % KUYRUK ITKI TABANI (Adim 160). Gerekce ve olculen mekanizma
+    % TiltrotorIndiParams.hpp LAND_TAIL_FLOOR_FRAC notunda; ozet:
+    % kuyruk 0'a cokunce km yaw torku kaybolur, kanat tilt farki hiz-sinirli
+    % oldugu icin takip edemez ve arac YERINDE doner. Alcalma azaltmasi
+    % kanatlardan SIMETRIK alinir -- yaw dengesini bozmaz.
+    if isfield(p.ctrl,'land_tail_floor_frac')
+        arm_ratio  = 2*p.rotor.pos(1,1) / abs(p.rotor.pos(1,3));
+        tail_share = arm_ratio / (2 + arm_ratio);
+        ctz0 = u_cmd(1)*cos(u_cmd(4)) + u_cmd(2)*cos(u_cmd(5)) + u_cmd(3)*cos(u_cmd(6));
+        tail_floor = p.ctrl.land_tail_floor_frac * tail_share * max(ctz0, 0);
+        if isfinite(tail_floor) && u_cmd(3) < tail_floor
+            add = tail_floor - u_cmd(3);
+            u_cmd(3) = tail_floor;
+            take = 0.5*add;
+            u_cmd(1) = max(min(u_cmd(1) - take, Tmax), Tmin_wing);
+            u_cmd(2) = max(min(u_cmd(2) - take, Tmax), Tmin_wing);
+        end
+    end
+
     if isfield(p.ctrl,'land_tz_max')
         ctz = u_cmd(1)*cos(u_cmd(4)) + u_cmd(2)*cos(u_cmd(5)) + u_cmd(3)*cos(u_cmd(6));
         tz_cap = p.ctrl.land_tz_max * abs(F_sp(2));

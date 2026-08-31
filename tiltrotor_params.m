@@ -625,6 +625,32 @@ p.ft.min_alt   = 20.0;             % m, altinda ileri gecise girilmez
 % esik ayrimi TiltrotorIndiParams.hpp LAND_TZ_MAX notunda; PX4 ve
 % sf_wls_alloc.m ile SENKRON KALMALI.
 p.ctrl.land_tz_max = 2.0;
+% Adim 160: kuyruk itki tabani (PX4 LAND_TAIL_FLOOR_FRAC ile SENKRON).
+p.ctrl.land_tail_floor_frac = 0.5;
+
+% INIS DIZISI (Adim 153/160). TiltrotorIndiParams.hpp LAND_* ve
+% sf_landing_sequence.m ile SENKRON KALMALI. Degerler run_mission_test.py'den
+% birebir tasindi; gerekceleri orada ve C++ tarafinda yazili.
+p.ctrl.land_step_m = 1.0;              % m,  1.5 m 13 BIG_M uretmisti
+p.ctrl.land_step_s = 1.5;              % s
+p.ctrl.land_flare_alt = 1.5;           % m AGL
+p.ctrl.land_touch_z = 0.15;            % m, yer datumunun ALTI
+p.ctrl.land_done_alt = 0.25;           % m AGL
+p.ctrl.land_ground_thrust_frac = 0.5;  % temas: dikey itki < bu x agirlik
+p.ctrl.land_touch_dwell = 1.5;         % s, kesintisiz temas suresi
+
+% GOREV DIZICISI (Adim 154/160). TiltrotorIndiParams.hpp MSN_* ve
+% sf_mission_sequencer.m ile SENKRON KALMALI.
+p.ctrl.msn_climb_alt = 40.0;           % m AGL
+p.ctrl.msn_climb_tol = 2.0;            % m
+p.ctrl.msn_settle_s = 12.0;            % s
+p.ctrl.msn_cruise_s = 8.0;             % s
+p.ctrl.msn_fw_cruise_s = 10.0;         % s
+p.ctrl.msn_land_vh = 1.0;              % m/s
+p.ctrl.msn_timeout_s = 60.0;           % s
+p.ctrl.msn_home_r = 8.0;               % m
+p.ctrl.msn_return_timeout_s = 400.0;   % s
+p.ctrl.msn_fw_phase = true;
 p.ctrl.land_diff_max = 10.0;   % N, |T0-T1| ust siniri (yalnizca yere yakinken)
 % Bu irtifanin USTUNDE mekanizma TAMAMEN ETKISIZ. 2.0 m, olculen butun yer
 % olaylarinin (oturma 0.03-0.6 m, yer etkisinde asilma 1.17-1.29 m) ustunde,

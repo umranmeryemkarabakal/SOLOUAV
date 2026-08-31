@@ -225,6 +225,7 @@ land_contact_diff = 6.0;           % N,   p.ctrl.land_contact_diff
 land_contact_acc  = 0.05;          % rad/s^2, p.ctrl.land_contact_acc
 land_contact_dwl  = 0.20;          % s,   p.ctrl.land_contact_dwell
 land_tz_max       = 2.0;           % x|Fz_sp|, TiltrotorIndiParams.hpp LAND_TZ_MAX
+land_tail_floor_frac = 0.5;        % TiltrotorIndiParams.hpp LAND_TAIL_FLOOR_FRAC
 
 % KAPI: `agl` YERDEN yukseklik olmak ZORUNDA. Kestirimcinin yerel orijininden
 % yukseklik (-z) DEGILDIR -- 23 SITL kosumunda olculen datum ofseti
@@ -284,6 +285,31 @@ if isfinite(agl) && agl < land_diff_alt
     % sapmasi saglikli inislerde de buyuk, cunku kanadin AERODINAMIK pitch
     % momenti de dengeleniyor. Bu olcut kontak tespitine hic bagli degil.
     % Uc rotor BIRLIKTE olceklenir -> moment ORANLARI korunur, net kaldirma kisilir.
+    % KUYRUK ITKI TABANI (Adim 160, PX4'ten tasindi -- Adim 157'de olculdu).
+    % Kuyruk rotoru 0'a cokunce yaw dengesi bozulur: ROTOR_KM = {-.06,+.06,-.06}
+    % oldugu icin iki kanat rotoru birbirini GOTURUR (esitken), kuyruk
+    % GOTURULMEZ. Kuyrugun torku her zaman kanat TILT FARKIYLA dengelenir:
+    %     sin(d0) - sin(d1) = 0.171 * T2 / Tw
+    % Trimde 0.171*16/17 = 0.161 -> 9.3 deg; SITL'de olculen 9.4 deg.
+    % Kuyruk 0.15 N'e dusunce gereken fark 0.1 dereceye iner AMA TILT HIZ
+    % SINIRLIDIR (tiltjerk), itki ise aninda duser: olculen fark hala 9.2 deg
+    % ve arada -0.64 Nm dengelenmemis tork kalir. Arac YERINDE doner
+    % (olculdu: yaw -29.9 deg, tepe 37.8 deg/s, yatay kayma yalnizca 0.27 m).
+    % Alcalma icin gereken azaltma KANATLARDAN alinir; simetrik dusurmek yaw
+    % dengesini bozmaz. Toplam dikey itki korunur, yani alcalma etkilenmez.
+    % SITL olcumu: BIG_M 932 -> 0, doyum %6.9 -> %0, LAND yaw -29.9 -> +0.8 deg.
+    arm_ratio  = 2*rpos(1,1) / abs(rpos(1,3));
+    tail_share = arm_ratio / (2 + arm_ratio);
+    ctz0 = u_cmd(1)*cos(u_cmd(4)) + u_cmd(2)*cos(u_cmd(5)) + u_cmd(3)*cos(u_cmd(6));
+    tail_floor = land_tail_floor_frac * tail_share * max(ctz0, 0);
+    if isfinite(tail_floor) && (u_cmd(3) < tail_floor)
+        add = tail_floor - u_cmd(3);
+        u_cmd(3) = tail_floor;
+        take = 0.5*add;
+        u_cmd(1) = max(min(u_cmd(1) - take, Tmax), Tmin);
+        u_cmd(2) = max(min(u_cmd(2) - take, Tmax), Tmin);
+    end
+
     ctz = u_cmd(1)*cos(u_cmd(4)) + u_cmd(2)*cos(u_cmd(5)) + u_cmd(3)*cos(u_cmd(6));
     tz_cap = land_tz_max * abs(F_sp(2));
     if isfinite(ctz) && isfinite(tz_cap) && (ctz > tz_cap) && (ctz > 1e-3)

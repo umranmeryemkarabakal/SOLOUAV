@@ -35,6 +35,12 @@ specs = {
     'sf_cruise_speed_loop', {0, 0, 0, z2}
     'sf_cruise_pitch_loop', {0, 0, 0}
     'sf_fixedwing_law',     {0, 0, 0, z3, z3, 0, 0, 0, z2}
+    % --- INIS DIZISI ve GOREV DIZICISI (Adim 160) ---
+    % Adim 153/154'te yalnizca PX4 C++'a eklenmislerdi; o haliyle HITL'de
+    % (uretilen kod) otonom gorev OLMAZDI -- bayraklari yine disaridan biri
+    % kaldirmak zorunda kalirdi (madde B0).
+    'sf_landing_sequence',  {false, 0, 0, 0, zeros(4,1), 0}
+    'sf_mission_sequencer', {false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, zeros(5,1), 0}
 };
 
 outdir = fullfile(pwd, 'codegen_out');
