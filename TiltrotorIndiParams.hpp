@@ -286,6 +286,33 @@ static constexpr bool  LAND_DIFF_ENABLE = true;
 //   142 sakin %1.1  | SICRAYAN %16.7
 // Yani saglikli inislerin hicbirine dokunmuyor. Uc rotor BIRLIKTE olceklenir,
 // boylece moment ORANLARI korunur; kesilen sey net kaldirmadir.
+// KUYRUK ITKI TABANI (2026-08-31, Adim 157). Inis kapisi altinda kuyruk
+// rotorunun cokmesini engeller.
+//
+// OLCULEN ARIZA: inisin son metrelerinde arac YERINDE DONUYOR (yaw -29.9 deg,
+// tepe 37.8 deg/s; yatay kayma yalnizca 0.27 m). Irtifa bandina gore olcum:
+//   2-3   m: T=[16.84 17.05 16.05] N, d0-d1 = 9.4 deg, doyum %0,   |r| 0.8 deg/s
+//   1.5-2 m: T=[12.22 14.76  0.15] N, d0-d1 = 9.2 deg, doyum %33, |r| 7.9 deg/s
+// Kuyruk 16 -> 0.15 N COKUYOR.
+//
+// NEDEN BU DONDURUYOR: bu govdede yaw dengesi km torkuna dayanir ve
+// ROTOR_KM = {-0.06, +0.06, -0.06} -- iki kanat rotoru BIRBIRINI GOTURUR
+// (esitken), KUYRUK GOTURULMEZ. Yani kuyrugun surtunme torku her zaman kanat
+// TILT FARKIYLA dengelenmek zorundadir:
+//   sin(d0) - sin(d1) = 0.171 * T2 / Tw
+// Trimde 0.171*16/17 = 0.161 -> 9.3 deg (olculen 9.4, model DOGRULANDI).
+// Kuyruk 0.15 N'e dusunce gereken fark 0.1 dereceye iner -- ama TILT HIZ
+// SINIRLIDIR (tiltjerk 0.45 rad/s), itki ise aninda duser. Olculen fark hala
+// 9.2 derece: tilt takip edemiyor ve arada +0.95 -> -0.14 Nm'lik dengelenmemis
+// km torku araci donduruyor (toplam -0.64 Nm).
+//
+// COZUM: alcalma icin gereken itki azaltmasi KANATLARDAN alinir, kuyruktan
+// degil. Kanatlari SIMETRIK dusurmek yaw dengesini HIC bozmaz (km'leri
+// birbirini goturur); kuyrugu dusurmek bozar.
+// Taban, kuyrugun TRIM PAYININ bir kesridir; boylece toplam dikey itki
+// korunur (alcalma etkilenmez) ve km torku surekli kalir.
+static constexpr float LAND_TAIL_FLOOR_FRAC = 0.5f;
+
 static constexpr float LAND_TZ_MAX = 2.0f;      // x|fz_sp|, kapi altinda dikey itki tavani
 static constexpr float LAND_DIFF_MAX = 10.0f;   // N, |T0-T1| ust siniri
 static constexpr float LAND_DIFF_ALT = 2.0f;    // m AGL, ustunde etkisiz

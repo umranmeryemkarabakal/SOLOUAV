@@ -1923,6 +1923,32 @@ MulticopterIndiTiltrotor::Run()
 			_land_contact_dwell = 0.0f;
 		}
 
+		// KUYRUK ITKI TABANI (Adim 157). Gerekce ve olculen mekanizma
+		// TiltrotorIndiParams.hpp, LAND_TAIL_FLOOR_FRAC notunda. Ozet:
+		// kuyruk 0'a cokunce km yaw torku kayboluyor, kanat tilt farki
+		// hiz-sinirli oldugu icin takip edemiyor ve arac doniyor.
+		// Alcalma icin gereken azaltma KANATLARDAN alinir -- simetrik
+		// dusurmek yaw dengesini bozmaz, kuyrugu dusurmek bozar.
+		{
+			const float arm_ratio = 2.0f * ROTOR_PX[0] / fabsf(ROTOR_PX[2]);
+			const float tail_share = arm_ratio / (2.0f + arm_ratio);
+			const float tz_now = u_cmd(0) * cosf(u_cmd(3)) + u_cmd(1) * cosf(u_cmd(4))
+					     + u_cmd(2) * cosf(u_cmd(5));
+			const float tail_floor = LAND_TAIL_FLOOR_FRAC * tail_share * fmaxf(tz_now, 0.f);
+
+			if (PX4_ISFINITE(tail_floor) && (u_cmd(2) < tail_floor)) {
+				const float add = tail_floor - u_cmd(2);
+				u_cmd(2) = tail_floor;
+
+				// Toplam dikey itkiyi KORU: eklenen kadarini kanatlardan
+				// SIMETRIK al. Simetrik oldugu icin km'leri birbirini
+				// goturmeye devam eder, yani yaw dengesi bozulmaz.
+				const float take = 0.5f * add;
+				u_cmd(0) = math::constrain(u_cmd(0) - take, ROTOR_TMIN, ROTOR_TMAX);
+				u_cmd(1) = math::constrain(u_cmd(1) - take, ROTOR_TMIN, ROTOR_TMAX);
+			}
+		}
+
 		// DIKEY ITKI TAVANI (Adim 145) -- gerekce ve olculen esik ayrimi
 		// TiltrotorIndiParams.hpp, LAND_TZ_MAX notunda. Tahsisat momenti
 		// kovalarken kuvvet komutunu cignemesin diye NET KALDIRMA kisilir;
