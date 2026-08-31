@@ -354,7 +354,13 @@ def main() -> int:
             # Bu kapi GERCEKTEN ulasiliyor: temiz bir iniste arac 0.03-0.10 m'ye
             # kadar iniyor (ULog 09_52_47). Kilitlenme rejiminde ise 0.6-1.3 m'de
             # takiliyor ve cikis asagidaki `stalled` dalindan yapiliyor.
-            if z_now >= -0.25:
+            #
+            # `z0` TABANLI (2026-08-31, Adim 148) -- eskiden mutlak `-0.25` idi,
+            # yani EKF yerel orijininin zeminde oldugunu varsayiyordu. Olculdu:
+            # arm anindaki `z` kosumdan kosuma -1.013 ile +0.903 m arasinda
+            # degisiyor. Bu dosya AGL'yi ZATEN `z0 - z_now` diye hesapliyor
+            # (Adim 117); burasi o sozlesmeye uyduruldu.
+            if z_now >= z0 - 0.25:
                 break
             # *** SUREKLI RAMPA DENENDI VE GERI ALINDI (2026-08-30, adim 134) ***
             # Adim 114'un teshisi, bu kosumda da tekrar uretilen bir ORTUSMEYE
@@ -369,7 +375,17 @@ def main() -> int:
             # yalnizca besliyordu, yaratmiyordu.
             # Bu yuzden 1 m kademe KALIYOR (1.5 m ayrica 13 BIG_M uretmisti,
             # RUNBOOK (O)) ve salinimin gercek kaynagi ayri bir is.
-            z_cmd = 0.0 + TOUCH_Z if z_now > -FLARE_ALT else z_now + 1.0
+            # HEDEF `z0`'A GORE (2026-08-31, Adim 148). Eskiden `0.0 + TOUCH_Z`
+            # idi: "yerin 15 cm alti" demek isteniyordu ama fiilen "EKF
+            # orijininin 15 cm alti" deniyordu. OLCULDU (6 kosum, tam ayrisma):
+            #   arm'daki z  +0.903, +0.506  -> arac 0.75-0.87 m'de ASILI KALDI
+            #   arm'daki z  -1.013 .. +0.023 -> temiz indi
+            # Orijin zeminin 0.9 m ustunde kuruldugunda komut "yerin 0.75 m
+            # USTUNDE dur" anlamina geliyordu ve irtifa dongusu hatayi
+            # sifirlayip duruyordu (fz_sp ~ -50 N, yani agirligi tasimaya devam).
+            # Sonuc: betik takilmayi gorup motorlari kesiyor ve arac 0.8 m'den
+            # DUSUYOR -- olculen carpma 3.0 ve 5.8 m/s. Gercek arac bunu kaldirmaz.
+            z_cmd = z0 + TOUCH_Z if z_now > z0 - FLARE_ALT else z_now + 1.0
             # YAW HEDEFI SON METREDE SERBEST BIRAKILIR (2026-08-28). Olculdu:
             # yere yakin yaw RMS'i 20.1x artiyor (roll 4.1x, pitch 3.1x), tepe
             # 6.44 rad/s. Sebep, kovalanamayan bir yaw hatasi: temas/yer etkisi

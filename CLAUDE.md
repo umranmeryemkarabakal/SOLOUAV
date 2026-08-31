@@ -55,6 +55,9 @@ python3 scripts/check_frontmatter.py --show-layout   # üretilecek yolları önd
 
 - Dokümanların ve konuşmanın dili Türkçe.
 - CAD üretimi cadquery gerektirir; ayrı bir venv'de kurulur (depo dışında).
-- Bu depoda git yok; commit/push isteme.
+- Depo git ile izleniyor (`origin` = github.com:umranmeryemkarabakal/SOLOUAV, dal `main`).
+  Kullanıcı **her değişiklikten sonra commit + push** istiyor (2026-08-31).
+  `sitl/px4_mission.log` her koşuda baştan yazılan bir çıktıdır; anlamlı
+  değişikliklerle aynı commit'e katmayın.
 - Oturum başında bu dosya + proje hafızası okunur. Burada yazan bir şeyi
   kodu tarayarak yeniden türetmeyin.
