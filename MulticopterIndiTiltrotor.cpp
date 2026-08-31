@@ -1289,7 +1289,42 @@ MulticopterIndiTiltrotor::Run()
 		// Vertical channel, in descending order of what is still measurable
 		// (blocker B1). Only the first branch is the flown configuration.
 		if (alt_ok) {
-			_fz_sp = altitudeLoop(z_sp, lpos.z, lpos.vz, _alt_integral_vz);
+			// YER ETKISI DUZELTMESI (2026-08-31, Adim 152).
+			//
+			// OLCULEN ARIZA: arac son 1-2 metreyi INEMIYOR, yer etkisinde
+			// asili kaliyor. Sebep tahsisat degil (komut edilen ve gerceklesen
+			// itki birebir ayni, 0.1 N), irtifa dongusune giren HIZ.
+			//
+			// lpos.vz'nin yere yakin KALICI bir sapmasi var. Olculdu (ULog
+			// 15_22_05, vz eksi EKF'in kendi konum turevi z_deriv):
+			//   20-45 m: -0.12 | 10-20 m: -0.02 | 5-10 m: +0.15
+			//    2-5 m : +0.32 |  1-2 m : +0.40 |  0-1 m: +0.38
+			// Sapma yere yaklastikca buyuyor -- ders kitabi yer etkisi imzasi
+			// (rotor asagi akisi baro'yu basincliyor). Gercek kartta da olur.
+			//
+			// NEDEN TAM OLARAK KILITLIYOR: altitude_loop.m'de
+			//   vz_sp = Kp_z * (z_sp - z) = 0.6 * 0.665 = 0.399 m/s
+			//   err_vz = vz_sp - vz = 0.399 - 0.442 = -0.04
+			// Sapma, komut edilen alcalma hizini BIREBIR iptal ediyor: dongu
+			// "zaten iniyorum" sanip itkiyi kismiyor. Gercek inis 0.058 m/s.
+			//
+			// z_deriv (EKF'in konum turevi) bu sapmayi TASIMIYOR ve GURULTUSU
+			// AYNI (olculdu, ardisik fark RMS orani 0.9-1.1x uc kosumda).
+			//
+			// ANI KAYNAK DEGISIMI YAPILMIYOR: 2 m'de vz->z_deriv gecisi
+			// Kp_vz * 0.4 = 1.6 m/s^2, yani 8 N'lik bir BASAMAK olurdu.
+			// Yerine LAND_DIFF_ALT..0 arasinda dogrusal harman: yukarida saf
+			// vz (fuzyonlanmis kestirim, dogru olan o), yerde saf z_deriv.
+			float vz_used = lpos.vz;
+			const float agl_alt = _z_datum - lpos.z;
+
+			if (PX4_ISFINITE(agl_alt) && PX4_ISFINITE(lpos.z_deriv)) {
+				const float w = math::constrain(
+						(LAND_DIFF_ALT - agl_alt) / LAND_DIFF_ALT, 0.f, 1.f);
+				vz_used = (1.f - w) * lpos.vz + w * lpos.z_deriv;
+			}
+
+			_fz_sp = altitudeLoop(z_sp, lpos.z, vz_used, _alt_integral_vz);
 
 		} else {
 			// Nothing vertical left to measure. Open-loop, just under hover

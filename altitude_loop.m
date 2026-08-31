@@ -1,4 +1,20 @@
 function [Fz_sp, state_out] = altitude_loop(z_sp, z, vz, state_in, p)
+%
+% ⚠ PX4 YOLUNDA FAZLADAN BIR TERIM VAR, VE BU BILEREK (2026-08-31, Adim 152).
+% MulticopterIndiTiltrotor.cpp, bu fonksiyonu cagirmadan once `vz`'yi yere
+% yakin `lpos.z_deriv` ile HARMANLIYOR. Burada karsiligi YOK ve OLMAMALI:
+% duzeltme bir KESTIRIMCI artefaktini telafi ediyor, bir kontrol yasasini
+% degistirmiyor. Bu modelde plant gercek hizi tam olarak veriyor; MATLAB'da
+% harmanlamak var olmayan bir sapmayi duzeltmek olurdu.
+%
+% OLCULEN ARTEFAKT (ULog 15_22_05): lpos.vz'nin yere yaklastikca buyuyen
+% kalici bir sapmasi var (20-45 m'de -0.12, 1-2 m'de +0.40 m/s) -- yer
+% etkisi baro'yu basincliyor. Sapma, bu fonksiyonun urettigi vz_sp'yi
+% (0.6*err_z = 0.399 m/s) BIREBIR iptal ediyor ve arac son iki metreyi
+% inemiyor. Ayrinti C++ tarafindaki yorumda.
+%
+% Yani parite testleri bu iki yolu KARSILASTIRIRKEN, girdi `vz` ayni
+% verildigi surece cikti da AYNIDIR -- fark cagiranda, bu fonksiyonda degil.
 %ALTITUDE_LOOP  Basit irtifa dis donguyu: P (pozisyon) + PI (hiz, anti-windup).
 %
 % F_sp = [Fx_sp;Fz_sp]'in Fz bileseni sabit -m*g yerine bu fonksiyondan gelir.

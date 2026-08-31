@@ -259,5 +259,82 @@
     <wind>
       <linear_velocity>0 6 0</linear_velocity>
     </wind>
-  </world>
+      <!-- IRTIFA CETVELI (2026-08-31, Adim 151). SALT GORSEL: <collision> YOK,
+         <static>true</static>. Fizige, ruzgara, zemin temasina DOKUNMAZ.
+         NEDEN VAR: dunya duz gri bir 100x100 m duzlem; yandan bakinca derinlik
+         ipucu yok ve aracin ne kadar indigi gozle okunamiyor (kullanici
+         geri bildirimi). Direk 2 m, her bant 25 cm, kirmizi/beyaz.
+         Konum (2.5, 2.5): arac orijinde kalkip iniyor, yani ucus yolundan
+         uzak; zaten collision'i olmadigi icin degse bile bir sey olmaz. -->
+    <model name="irtifa_cetveli">
+      <static>true</static>
+      <pose>2.5 2.5 0 0 0 0</pose>
+      <link name="link">
+        <visual name='band_0'>
+          <pose>0 0 0.125 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.9 0.1 0.1 1</ambient>
+            <diffuse>0.9 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_1'>
+          <pose>0 0 0.375 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_2'>
+          <pose>0 0 0.625 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.9 0.1 0.1 1</ambient>
+            <diffuse>0.9 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_3'>
+          <pose>0 0 0.875 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_4'>
+          <pose>0 0 1.125 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.9 0.1 0.1 1</ambient>
+            <diffuse>0.9 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_5'>
+          <pose>0 0 1.375 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_6'>
+          <pose>0 0 1.625 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.9 0.1 0.1 1</ambient>
+            <diffuse>0.9 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <visual name='band_7'>
+          <pose>0 0 1.875 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.25</length></cylinder></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+</world>
 </sdf>

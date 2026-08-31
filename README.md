@@ -20,6 +20,61 @@ MATLAB Function bloğunun kod üretimi kısıtlarına (değişken boyut yok,
 
 ---
 
+## ► GÜNCEL DURUM (2026-08-31, Adım 152)
+
+Bu README'nin gövdesi Adım ~39'da (3 Ağustos) donmuştur ve kontrolcü
+mimarisini hâlâ doğru anlatır. Aşağıdaki blok o tarihten sonrasını özetler;
+adım adım kayıt `WLS_LOCKUP_INVESTIGATION_REPORT.md`'dedir.
+
+### Ne çalışıyor
+
+Tam görev SITL'de uçuyor: **kalkış → ileri geçiş → sabit kanat (90° tilt,
+~14,5 m/s) → geri geçiş → hover → iniş**, sakin ve rüzgârlı dünyada.
+MATLAB regresyon 12/12, kod üretimi paritesi TEST A–F tam (0 mekanizma
+eksik), üretilen kod kaynakla tutarlı, Cube Orange derleniyor (flash %84,5).
+
+### Geometri (2026-08-31 itibarıyla)
+
+| | değer |
+|---|---|
+| Ön rotorlar | x **+0,27**, y **±0,35**, z −0,11 |
+| Kuyruk rotoru | x **−0,55**, z −0,07, tilt **0–20°** |
+| Fin / rudder / çubuk | −0,78 / −0,87 / 0,71 m |
+
+Ön naseller kanadın hücum kenarının **önüne** alındı: 90° tiltte pervane
+diski dikey bir düzlemdir ve göbek hücum kenarının gerisindeyse kanadı keser.
+Pervaneyi küçültmek, açıklıkta dışa almak ve tilt'i sınırlamak **ölçülüp
+elendi** (Adım 143).
+
+### ⚠ En büyük açık: kartta İNİŞ YOLU YOK
+
+Modül `z_sp`'yi **dışarıdan** alır (`tiltrotor_indi_setpoint`) ya da manuel
+gaz kolundan. İniş **dizisi** (kademeli alçalma, flare, temas, motor kesme)
+`sitl/run_mission_test.py` içindedir — yani PC tarafında.
+
+O betik hedefi `px4-mc_indi_tiltrotor test_sp` **POSIX kabuk istemcisiyle**
+gönderir; bu yol yalnızca SITL'de vardır. Gerçek kartta karşılığı yoktur ve
+`flight_mode_manager`/`mc_pos_control` bu airframe'de **bilerek durdurulur**
+(yoksa iki modül aynı anda aktüatörlere yazar), yani PX4'ün kendi land modu
+da devrede değildir.
+
+**Sonuç: kart bugün flash edilirse otonom iniş olmaz.** Kartta tek yol
+manuel gaz koludur (`_man_z_sp`) ve o da RC yoluna bağlıdır — madde H8,
+**henüz sınanmadı**. Ayrıntı: `HARDWARE_READINESS_CHECKLIST.md`.
+
+### Bu oturumda eklenen korumalar
+
+- `LAND_TZ_MAX` — iniş kapısı altında tahsisat, komut edilen dikey kuvvetin
+  2 katından fazlasını üretemez. Temas sonrası kuyruk 0 N'e dayanınca ön
+  itkinin aracı geri kaldırmasını keser (ölçülen sıçrama 0,84 m).
+- **Yer etkisi harmanı** — `lpos.vz`'nin yere yakın +0,4 m/s kalıcı sapması
+  var (baro, rotor akışıyla basınçlanıyor) ve komut edilen alçalma hızını
+  birebir iptal ediyordu. Yerde `z_deriv` ile harmanlanır.
+- Kapılara üç denetim: gerçek mesh açıklığı, XML yorum, **köke bağlantı**
+  (fin 20 mm havada asılıydı, hiçbir kapı görmüyordu).
+
+---
+
 ## Araç ve model
 
 Parametreler `tiltrotor_params.m` içindedir; kaynak olarak PX4/Gazebo
