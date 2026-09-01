@@ -169,15 +169,24 @@ doğrulandı.
   (bbox'ları ~4 mm kayık), o da dönen bir pervanede anlamsızdır.
 - Pervanelerin **eksen etrafındaki başlangıç açısı** mesh'ten geldiği gibidir;
   SDF bir başlangıç açısı tanımlamıyor.
-- **Pala ucu kesitleri dejenere** (1 Eylül 2026, AÇIK). `stations(fallback=True)`
-  mesh'in kapanmadığı dış istasyonlarda zinciri zorla kapatıyor ve oradaki
-  kesitler kendi üstüne katlanıyor. Ölçüm: uç yüzeyinin alanı kendi
-  sınırlayıcı kutusunun yalnızca **%3-6**'sı (düzgün bir profilde ~%65).
-  Dış 11+14 istasyon atıldığında bile oran değişmiyor, yani sorun yalnızca
-  en uçta değil palanın **dış bölgesinin tamamında**. İstasyon seçimiyle
-  ya da yumuşatmayla çözülmüyor; o bölgenin veter/kalınlık/burulma
-  dağılımından **yeniden inşası** gerekiyor. Denenip elenen dört yol
-  `build_tiltrotor_cad.py` içindeki "⛔ PALA UCU DEJENERASYONU" notunda.
+- **Dış pala kesitleri yeniden inşa edildi** (1 Eylül 2026, ÇÖZÜLDÜ).
+  `iris_prop_cw.dae` bir **görsel** mesh'tir; dış palada kabuk 0,2 mm'ye,
+  en uçta 0,01 mm'ye iner. O kadar inceyi dilimleyince kontur kendi üstüne
+  katlanıyordu: uç yüzeyinin alanı kendi sınırlayıcı kutusunun %3-6'sıydı
+  (profilde ~%65) — "pervane ucu oval değil" şikâyetinin kaynağı buydu.
+  `rebuild_thin_sections` ölçülen **veter, burulma ve kesit merkezini
+  korur** (bunlar istasyondan istasyona düzgün değişiyor, yani güvenilir),
+  yalnızca konturu elipsle ve kalınlığı `PROP_MIN_T = 1,2 mm` imalat alt
+  sınırıyla yeniden kurar. Sonuç: bozuk istasyon **18 → 0**, uç yüzeyi
+  0,50 → **8,65 mm²**, dolgu oranı 0,07 → **0,65**. Bedeli: pervane hacmi
+  4,61 → 7,57 cm³ (dış pala kalınlaştı) — bu bilinçli bir imalat kararıdır,
+  sim geometrisinden bir sapmadır. Önce denenip elenen dört onarım yolu
+  `build_tiltrotor_cad.py` içindeki not bloğunda.
+- **Pervane dalgalanması giderildi** (1 Eylül 2026). `smooth_stations`, 61
+  mesh kesitini açıklık boyunca yumuşatır. Ölçüm: veter dizisindeki yön
+  değişimi **15/59 → 3/59**. Sıra bağlayıcıdır: önce yumuşatma, sonra
+  yeniden inşa — tersi durumda yumuşatma yeni elipsi katlanmış
+  komşularıyla ortalayıp bozulmayı geri getiriyor.
 - **Elevonlar birbirinin aynası değil** (1 Eylül 2026, AÇIK). İki elevonun
   pozu SDF'ten **bağımsız** alınıyor (`ELEVON` tablosu), aynalanarak
   üretilmiyor. Ölçüm: sağ elevon açıklıkta **8,0 mm**, veterde 0,9 mm kaymış;

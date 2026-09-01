@@ -240,25 +240,106 @@ def smooth_stations(st, w=2):
     return out
 
 
-# ⛔ PALA UCU DEJENERASYONU — DENENDİ, GERİ ALINDI (1 Eylül 2026)
+PROP_MIN_T = 1.2      # mm — dış paladaki asgari kesit kalınlığı (imalat kısıtı)
+PROP_DOLGU = 0.35     # bunun altında dolgu oranı olan kesit "katlanmış" sayılır
+
+
+def _kesit_olcu(r):
+    """Kesitin veter/kalınlık/burulma/merkezini ana eksen analiziyle çıkar."""
+    c = r - r.mean(axis=0)
+    _, _, vt = np.linalg.svd(c, full_matrices=False)
+    veter = np.ptp(c @ vt[0])
+    kal = np.ptp(c @ vt[1])
+    A = abs(0.5 * np.sum(r[:, 0] * np.roll(r[:, 1], -1)
+                         - np.roll(r[:, 0], -1) * r[:, 1]))
+    dolgu = A / (veter * kal) if veter * kal > 0 else 0.0
+    return veter, kal, vt[0], r.mean(axis=0), dolgu
+
+
+def rebuild_thin_sections(st, n=40):
+    """Katlanmış dış pala kesitlerini elips profille yeniden inşa et.
+
+    NEDEN: `iris_prop_cw.dae` bir GÖRSEL mesh'tir, katı model değil. Dış
+    palada kabuk 0,2 mm'ye iner; o kadar inceyi dilimleyince kontur kendi
+    üstüne katlanır ve loft'un ucu "oval" değil bir dilim olur. Ölçüm: uç
+    yüzeyinin alanı kendi sınırlayıcı kutusunun %3-6'sı (profilde ~%65).
+
+    Ölçülen VETER, BURULMA ve KESİT MERKEZİ her istasyonda düzgün değişir
+    (veter 20,08 -> 10,25 -> 4,44; burulma -172,8 -> -167,8), yani onlar
+    güvenilir ve KORUNUR. Yalnızca konturun kendisi ve kalınlık yeniden
+    üretilir: kalınlık, sağlam istasyonlardan gelen eğilime ve imalat için
+    PROP_MIN_T alt sınırına oturtulur.
+
+    Elips seçildi çünkü dolgu oranı pi/4 = 0,785 ile hedefe yakın ve kendini
+    kesmesi mümkün değil — bu bölgede loft'un geçerli katı vermesi kritik.
+    """
+    R = [np.asarray(r, float) for _, r in st]
+    xs = [x for x, _ in st]
+    olc = [_kesit_olcu(r) for r in R]
+    # İKİ ölçüt gerekiyor: katlanmış (düşük dolgu) VE jilet inceliğinde
+    # (kalınlık < asgari) kesitler yeniden kurulur. Yalnız dolguya bakmak
+    # yetmiyordu: en uçtaki istasyonun kalınlığı 0,01 mm ama dolgusu 0,468,
+    # yani "sağlam" görünüp geçiyordu ve katının uç yüzeyi dilim kalıyordu.
+    def bozuk(o):
+        return o[4] < PROP_DOLGU or o[1] < PROP_MIN_T / 1000.0
+
+    saglam = [i for i, o in enumerate(olc) if not bozuk(o)]
+    if not saglam:
+        return st
+
+    def kalinlik(i):
+        """Sağlam komşulardan doğrusal ara/dış değer, PROP_MIN_T ile sınırlı."""
+        sol = [j for j in saglam if j <= i]
+        sag = [j for j in saglam if j >= i]
+        if sol and sag:
+            a, b = sol[-1], sag[0]
+            t = olc[a][1] if a == b else (
+                olc[a][1] + (olc[b][1] - olc[a][1]) * (i - a) / float(b - a))
+        else:
+            t = olc[(sol or sag)[-1 if sol else 0]][1]
+        return max(t, PROP_MIN_T / 1000.0)
+
+    out = []
+    for i, (x, r) in enumerate(st):
+        veter, kal, ana, mrk, dolgu = olc[i]
+        if not bozuk(olc[i]):
+            out.append((x, r))
+            continue
+        t = kalinlik(i)
+        a, b = veter / 2.0, t / 2.0
+        th = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+        el = np.column_stack([a * np.cos(th), b * np.sin(th)])
+        dik = np.array([-ana[1], ana[0]])
+        yeni = mrk + el[:, :1] * ana + el[:, 1:2] * dik
+        # resample() ile aynı yönelim: CCW ve max-x'ten başla
+        alan = 0.5 * np.sum(yeni[:, 0] * np.roll(yeni[:, 1], -1)
+                            - np.roll(yeni[:, 0], -1) * yeni[:, 1])
+        if alan < 0:
+            yeni = yeni[::-1]
+        yeni = np.roll(yeni, -int(np.argmax(yeni[:, 0])), axis=0)
+        out.append((x, yeni))
+    return out
+
+
+# ⛔ PALA UCU İÇİN ÖNCE DENENEN VE ELENEN YOLLAR (1 Eylül 2026)
 #
-# `stations(fallback=True)` mesh'in kapanmadığı uç istasyonlarda zinciri ZORLA
-# kapatır; oradan çıkan kesit dejenere olur. Ölçüm: uç kesitinde merkeze
-# uzaklık 0,00-2,22 mm (222x oran), yani kesit bir yerde noktaya çöküyor —
-# "uç oval değil" şikâyetinin kaynağı bu. Üç yol denendi, ÜÇÜ DE geçersiz
-# katı verdi ya da eşiğe göre rastgele davrandı:
+# Uç dejenerasyonunu ONARMAYA çalışan üç yol da başarısız oldu; hepsi ya
+# geçersiz katı verdi ya da eşiğe göre rastgele davrandı:
 #
 #   1. Dejenere istasyonları atıp yerlerine son sağlam kesitin küçültülmüş
-#      kopyasını koymak      -> ovallik 222x -> 78x, ama katı GEÇERSİZ
-#   2. Dejenere istasyonları sadece kırpmak (eşik 0,15/0,30/0,45/0,60)
+#      kopyasını koymak      -> katı GEÇERSİZ
+#   2. Dejenere istasyonları kırpmak (eşik 0,15/0,30/0,45/0,60)
 #                             -> yalnızca 0,15 geçerli; eşiğe göre gidip
 #                                gelmesi OCC'nin sınırda çalıştığını gösterir
 #   3. fallback=False + istasyon aralığını içeri çekmek (0,5..5 mm)
 #                             -> çoğu geçersiz; 5 mm'de hacim -723174 cm3
+#   4. Katıyı düzlemle kesip sağlam bir kesitte bitirmek
+#                             -> geçerli ama uç dolgu oranı 0,06'da kaldı,
+#                                çünkü kestiğim yerdeki kesit de bozuktu
 #
-# Bu yüzden yalnızca `smooth_stations` gönderildi (dalgalanmayı çözüyor,
-# katı geçerli kalıyor). Uç dejenerasyonu AÇIK bir sapmadır; düzeltmesi
-# muhtemelen loft yerine uçta ayrı bir kapak yüzeyi ister.
+# Çözüm onarım değil YENİDEN İNŞA oldu (`rebuild_thin_sections`): kesitin
+# ölçülen veter/burulma/merkezi korunur, yalnız kontur ve kalınlık yeniden
+# kurulur. Sonuç: uç yüzeyi 0,50 -> 8,65 mm2, dolgu oranı 0,07 -> 0,65.
 
 
 def build_prop(mesh_name, center):
@@ -279,7 +360,11 @@ def build_prop(mesh_name, center):
     x0, x1 = V[:, 0].min(), V[:, 0].max()
     st = stations(V, T, axis=0, vals=np.linspace(x0 + 5e-4, x1 - 5e-4, 61),
                   n=40, fallback=True)
+    # SIRA ÖNEMLİ: önce yumuşat, SONRA yeniden inşa et. Tersi durumda
+    # yumuşatma, yeni kurulan elipsi hâlâ katlanmış komşularıyla ortalayıp
+    # katlanmayı geri getiriyor (ölçüm: uç dolgu oranı 0,32'de takılıyor).
     st = smooth_stations(st)
+    st = rebuild_thin_sections(st)
     if mesh_name.endswith('ccw'):
         st = [(x, np.column_stack([r[:, 0], -r[:, 1]])[::-1]) for x, r in st]
     return loft_from_stations(st, axis=0).translate(tuple(c * MM for c in center))
