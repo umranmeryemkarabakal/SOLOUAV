@@ -28,14 +28,21 @@ CANDIDATES = [
     r"C:\users\umran\Documents\tiltrotor_cad\step\parts",
 ]
 
-STATIC = ["wing", "winglet_left", "winglet_right", "tail_boom", "tailplane",
-          "tailplane_strut", "vertical_stabiliser", "pylon_left", "pylon_right",
-          "leg_front_left", "leg_front_right", "leg_tail"]
-MOVING = ["motor_0_right", "motor_1_left", "motor_2_tail",
-          "rotor_0_right", "rotor_1_left", "rotor_2_tail",
-          "elevon_left", "elevon_right",
-          "elevator_left", "elevator_right", "rudder"]
-PARTS = STATIC + MOVING
+# Parca listesi KLASORDEN turetilir, elle yazilmaz: build_mechanism.py
+# mekanizma parcalarini ekledikten sonra sayi 23'ten 56'ya cikti ve sabit
+# liste sessizce eksik kalmisti. Hareketli olanlar ad kalibiyla ayrilir;
+# geri kalan her sey base_link Rigid Group'una girer.
+MOVING_PREFIX = ("motor_", "rotor_", "elevon_", "elevator_",
+                 "tilt_cradle_", "tilt_crank_", "horn_", "pushrod_")
+MOVING_EXACT = ("rudder",)
+
+
+def siniflandir(names):
+    """(STATIC, MOVING) — hareketli = eklemle donen ya da onunla birlikte giden."""
+    moving = [n for n in names
+              if n.startswith(MOVING_PREFIX) or n in MOVING_EXACT]
+    static = [n for n in names if n not in moving]
+    return static, moving
 
 
 def find_base():
@@ -62,12 +69,14 @@ def run(context):
                 "Denenen yollar:\n  " + "\n  ".join(p for p in CANDIDATES if p))
             return
 
-        missing = [n for n in PARTS if not os.path.isfile(os.path.join(base, n + ".step"))]
-        if missing:
-            ui.messageBox("Klasor bulundu ama {} parca eksik:\n\n{}\n\nKlasor:\n{}\n\n"
-                          "Eksikse cad/build_tiltrotor_cad.py ile yeniden uretin."
-                          .format(len(missing), ", ".join(missing), base))
+        names = sorted(f[:-5] for f in os.listdir(base) if f.endswith(".step"))
+        if not names:
+            ui.messageBox("Klasorde hic .step yok:\n{}\n\n"
+                          "Once cad/build_tiltrotor_cad.py, sonra "
+                          "cad/build_mechanism.py calistirin.".format(base))
             return
+        STATIC, MOVING = siniflandir(names)
+        PARTS = STATIC + MOVING
 
         design = adsk.fusion.Design.cast(
             app.activeDocument.products.itemByProductType("DesignProductType"))
@@ -84,7 +93,7 @@ def run(context):
                           .format(", ".join(var_olan[:3])))
             return
 
-        # Zaman cizelgesini kapat: 23 ice aktarma cok fazla ozellik uretir
+        # Zaman cizelgesini kapat: onlarca ice aktarma cok fazla ozellik uretir
         design.designType = adsk.fusion.DesignTypes.DirectDesignType
 
         im = app.importManager

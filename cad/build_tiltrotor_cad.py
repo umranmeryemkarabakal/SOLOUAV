@@ -211,6 +211,56 @@ def build_cylinder(center, r, L):
                                  pnt=Vector(center[0] * MM, center[1] * MM, (center[2] - L / 2) * MM))
 
 
+def _loop_area(r):
+    x, y = r[:, 0], r[:, 1]
+    return abs(0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
+
+
+def smooth_stations(st, w=2):
+    """Kesitleri AÇIKLIK boyunca yumuşat (dalgalanma giderme).
+
+    `stations()` her kesiti aynı nokta sayısına yeniden örnekler ve hepsini
+    firar kenarından başlatır, yani i. kesitin k. noktası komşularınınkiyle
+    karşılık gelir. Bu yüzden istasyonlar arası hareketli ortalama, palanın
+    gerçek biçimini (burulma, veter değişimi) bozmadan yalnızca mesh
+    fasetlerinden gelen istasyon-istasyon zıplamasını siler.
+
+    Neden gerekiyor: loft her kesitin TAM içinden geçmek zorundadır; 61
+    gürültülü kesit doğrudan 61 dalgalı kaburga demektir. Ölçüm: uca doğru
+    veter 17,9 -> 10,4 -> 13,0 mm diye inip çıkıyordu.
+    """
+    R = [np.asarray(r, float) for _, r in st]
+    xs = [x for x, _ in st]
+    n = len(R)
+    out = []
+    for i in range(n):
+        lo, hi = max(0, i - w), min(n, i + w + 1)
+        grup = [R[j] for j in range(lo, hi) if R[j].shape == R[i].shape]
+        out.append((xs[i], np.mean(np.stack(grup), axis=0) if grup else R[i]))
+    return out
+
+
+# ⛔ PALA UCU DEJENERASYONU — DENENDİ, GERİ ALINDI (1 Eylül 2026)
+#
+# `stations(fallback=True)` mesh'in kapanmadığı uç istasyonlarda zinciri ZORLA
+# kapatır; oradan çıkan kesit dejenere olur. Ölçüm: uç kesitinde merkeze
+# uzaklık 0,00-2,22 mm (222x oran), yani kesit bir yerde noktaya çöküyor —
+# "uç oval değil" şikâyetinin kaynağı bu. Üç yol denendi, ÜÇÜ DE geçersiz
+# katı verdi ya da eşiğe göre rastgele davrandı:
+#
+#   1. Dejenere istasyonları atıp yerlerine son sağlam kesitin küçültülmüş
+#      kopyasını koymak      -> ovallik 222x -> 78x, ama katı GEÇERSİZ
+#   2. Dejenere istasyonları sadece kırpmak (eşik 0,15/0,30/0,45/0,60)
+#                             -> yalnızca 0,15 geçerli; eşiğe göre gidip
+#                                gelmesi OCC'nin sınırda çalıştığını gösterir
+#   3. fallback=False + istasyon aralığını içeri çekmek (0,5..5 mm)
+#                             -> çoğu geçersiz; 5 mm'de hacim -723174 cm3
+#
+# Bu yüzden yalnızca `smooth_stations` gönderildi (dalgalanmayı çözüyor,
+# katı geçerli kalıyor). Uç dejenerasyonu AÇIK bir sapmadır; düzeltmesi
+# muhtemelen loft yerine uçta ayrı bir kapak yüzeyi ister.
+
+
 def build_prop(mesh_name, center):
     """Pervaneyi kendi ekseni boyunca (palalar x'te uzanır) alınan gerçek
     mesh kesitlerinden loft eder; pala burulması ve kesit değişimi korunur.
@@ -229,6 +279,7 @@ def build_prop(mesh_name, center):
     x0, x1 = V[:, 0].min(), V[:, 0].max()
     st = stations(V, T, axis=0, vals=np.linspace(x0 + 5e-4, x1 - 5e-4, 61),
                   n=40, fallback=True)
+    st = smooth_stations(st)
     if mesh_name.endswith('ccw'):
         st = [(x, np.column_stack([r[:, 0], -r[:, 1]])[::-1]) for x, r in st]
     return loft_from_stations(st, axis=0).translate(tuple(c * MM for c in center))

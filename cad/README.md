@@ -11,7 +11,9 @@ cad/
 ├── dogrulama_raporu.txt     son denetim çıktısı (dogrula.py üretir)
 ├── render_onizleme.py       üç görünüş önizlemesi üretir
 ├── onizleme.png             üç görünüş doğrulaması
-├── fusion_01_import.py      Fusion 360'a 23 parçayı içe aktarma betiği (Aşama 1)
+├── build_mechanism.py       mekanizma üreticisi (tilt grubu, iniş takımı, menteşe/tahrik)
+├── dogrula_mekanizma.py     mekanizmanın bağımsız denetleyicisi
+├── fusion_01_import.py      Fusion 360'a parçaları içe aktarma betiği (Aşama 1)
 ├── fusion_02_joints.py      11 revolute eklemi SDF'ten kurma betiği (Aşama 2)
 ├── dogrula_fusion_parser.py Aşama 2'nin SDF ayrıştırıcısını rapora karşı sınar
 ├── MONTAJ.md                eklem tablosu, montaj adımları, imalat kısıtları
@@ -46,16 +48,40 @@ Kuyruk yüzeylerinin profili SDF'te **yok** — orada yalnızca kutu var. Kutunu
 kiriş/açıklık/azami kalınlık zarfı korunarak içine simetrik profil oturtuldu;
 bu bir varsayımdır, sim geometrisinden bir sapma değil ama ondan da fazlasıdır.
 
-## Yeniden üretme
+## Yeniden üretme — İKİ AŞAMA, sırası önemli
 
 ```bash
 python3 -m venv env && ./env/bin/pip install cadquery
-./env/bin/python cad/build_tiltrotor_cad.py
+./env/bin/python cad/build_tiltrotor_cad.py    # 1) aerodinamik gövdeler (mesh ister)
+./env/bin/python cad/build_mechanism.py        # 2) mekanizma (mesh İSTEMEZ)
 ```
+
+**Sıra bağlayıcıdır.** Aşama 2, Aşama 1'in ürettiği STEP gövdelerini okur ve
+bazılarını değiştirir (pylon'lara motor süpürme boşluğu, ana yüzeylere menteşe
+boşluğu). Aşama 1'i tek başına koşmak bu boşlukları geri alır ve motor kendi
+pilonunun içinden geçmeye başlar — `dogrula_mekanizma.py` bunu yakalar.
 
 Mesh dizini varsayılan olarak
 `~/PX4-Autopilot/Tools/simulation/gz/models/standard_vtol/meshes`;
-`VTOL_MESH_DIR` ortam değişkeniyle değiştirilebilir.
+`VTOL_MESH_DIR` ortam değişkeniyle değiştirilebilir. Mesh'ler PX4 ağacında
+yoksa doğrudan indirilebilir:
+
+```bash
+BASE=https://raw.githubusercontent.com/PX4/PX4-gazebo-models/main/models/standard_vtol/meshes
+for M in x8_wing x8_elevon_left x8_elevon_right iris_prop_cw iris_prop_ccw; do
+  curl -sL -o "$M.dae" "$BASE/$M.dae"
+done
+```
+
+### Mekanizma neden ayrı bir betikte
+
+`build_mechanism.py`'nin ürettiği hiçbir parça mesh'e ihtiyaç duymaz —
+hepsi SDF'ten türeyen eksenler etrafında kutu ve silindirdir, menteşe
+boşlukları da mevcut STEP gövdelerinden kesilir. Böylece mesh'i olmayan bir
+makinede de mekanizma yeniden üretilebilir ve denetlenebilir.
+
+Menteşe sayıları burada da tekrarlanmaz: betik `fusion_02_joints.py`'nin
+ayrıştırıcısını ödünç alır (`dogrula_fusion_parser.py` ile aynı teknik).
 
 Kaynak model: `Tools/simulation/gz/models/tiltrotor_indi/model.sdf`
 (depodaki `tiltrotor_tailplane_model.sdf` ile birebir aynı).
@@ -143,6 +169,22 @@ doğrulandı.
   (bbox'ları ~4 mm kayık), o da dönen bir pervanede anlamsızdır.
 - Pervanelerin **eksen etrafındaki başlangıç açısı** mesh'ten geldiği gibidir;
   SDF bir başlangıç açısı tanımlamıyor.
+- **Pala ucu kesitleri dejenere** (1 Eylül 2026, AÇIK). `stations(fallback=True)`
+  mesh'in kapanmadığı dış istasyonlarda zinciri zorla kapatıyor ve oradaki
+  kesitler kendi üstüne katlanıyor. Ölçüm: uç yüzeyinin alanı kendi
+  sınırlayıcı kutusunun yalnızca **%3-6**'sı (düzgün bir profilde ~%65).
+  Dış 11+14 istasyon atıldığında bile oran değişmiyor, yani sorun yalnızca
+  en uçta değil palanın **dış bölgesinin tamamında**. İstasyon seçimiyle
+  ya da yumuşatmayla çözülmüyor; o bölgenin veter/kalınlık/burulma
+  dağılımından **yeniden inşası** gerekiyor. Denenip elenen dört yol
+  `build_tiltrotor_cad.py` içindeki "⛔ PALA UCU DEJENERASYONU" notunda.
+- **Elevonlar birbirinin aynası değil** (1 Eylül 2026, AÇIK). İki elevonun
+  pozu SDF'ten **bağımsız** alınıyor (`ELEVON` tablosu), aynalanarak
+  üretilmiyor. Ölçüm: sağ elevon açıklıkta **8,0 mm**, veterde 0,9 mm kaymış;
+  hacimler 125,28 / 126,08 cm³. Kanat için "sağ yarı solun aynası" işlemi
+  uygulanmış, winglet'ler de simetrik (417,81 / 417,82 cm³) — elevonlar bu
+  işlemden geçmemiş tek çift. Menteşe boşluğu yarıçaplarının asimetrik
+  çıkmasının (20,09 / 25,19 mm) sebebi budur.
 
 ## Doğrulama
 
@@ -176,8 +218,32 @@ zarfı, katı sağlığı, menteşe, duruşta girişim, tilt süpürmesi, yüzey
   bile 0,7 cm³ hacim yapar. Mutlak hacim eşiği bu yüzden büyük parçalarda
   ölçtüğü şeyi değil parçanın boyutunu yansıtır.
 
-Son durum: **62 geçti, 2 uyarı, 0 CAD hatası, 0 kaynak model bulgusu,
-5 limit dışı.** 23 STEP dosyasının hepsi `BRepCheck_Analyzer` ile geçerli ve tek
+### Mekanizma kapısı
+
+```bash
+/path/to/cadquery-venv/bin/python cad/dogrula_mekanizma.py
+```
+
+`dogrula.py`'nin mekanizma karşılığı: üretici betiğin tablolarını kullanmaz,
+STEP'leri ve SDF'i baştan okur. Beş denetim — katı sağlığı, tilt süpürmesi
+(SDF limitleri boyunca), kumanda yüzeyi hareketi, iniş takımı bağlantısı,
+duruşta istenmeyen girişim.
+
+Geliştirilirken üç **gerçek** hata yakaladı: (1) pylon'lara süpürme boşluğu
+açmayı unutmuştum, motor üç nacelle'de de kendi pilonundan geçiyordu;
+(2) elevatör servoları `tailplane_strut`'ın içindeydi (5,24 cm³);
+(3) kuyruk dikmesi tailplane'i kesiyordu. Ayrıca kapının kendisinde bir
+boşluk vardı: yüzeyleri yalnızca ana gövdelerine karşı sınıyordu, o yüzden
+elevatörün **kuyruk çubuğuna** çarpmasını ıskalıyordu — komşu gövdeler eklendi.
+
+Son durum: **61 geçti, 2 uyarı, 0 HATA.** İki uyarı elevatörün +29,8°'de
+kuyruk çubuğuna girmesidir; temiz sınır **~±25°**. Not: `MONTAJ.md`'deki
++26° mekanik durdurucu ölçümle 0,02 cm³ girişime izin veriyor.
+
+---
+
+Son durum (`dogrula.py`): **62 geçti, 2 uyarı, 0 CAD hatası, 0 kaynak model
+bulgusu, 5 limit dışı.** 23 STEP dosyasının hepsi `BRepCheck_Analyzer` ile geçerli ve tek
 kapalı katı. Kalan 2 uyarı elevatör–kuyruk çubuğu girişimidir; bilerek açık
 bırakıldı ve montajda çözülecek (bkz. `MONTAJ.md`, imalat kısıtı bölümü).
 
