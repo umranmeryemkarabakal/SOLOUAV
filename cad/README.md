@@ -149,9 +149,19 @@ doğrulandı.
 
 ## Bilinen sapmalar
 
-- **Winglet ucunda ~3.5 mm loft taşması** (z 211.2 mm, mesh zarfı 207.7 mm).
-  Pürüzsüz loft uçta zarfın dışına çıkıyor; boolean kırpma bu gövdede kararsız
-  çalıştığı için bırakıldı. Açıklığın %0.16'sı mertebesinde.
+- **Winglet ucundaki loft taşması giderildi** (1 Eylül 2026, ÇÖZÜLDÜ).
+  Winglet kesitleri sağlamdı (dolgu 0,67-0,77); sorun veterin son 7 mm'de
+  111 → 68 → 20 mm'ye çökmesi ve `makeLoft(ruled=False)`'un pürüzsüz yüzeyi
+  son kesitin **ötesine** sürüklemesiydi: gövde 207,2'de bitmesi gerekirken
+  211,2 mm'ye uzanıyordu. O uzantı kendi kendini kesen ince bir dilimdi —
+  görünürde kanat ucundan fırlayan bir artık. Üst 8 mm'deki dilim
+  genişlikleri `0,0 111,8 0,0 0,0 0,0 110,4 109,3 0,0` ile bunun düzgün bir
+  katı olmadığı ölçüldü. Boolean kırpma yine kararsız çıktı (`Bnd_Box is
+  void`), o yüzden `close_winglet_tip` taşmayı kırpmak yerine **kaynağında**
+  engelliyor: son istasyon atılıp 205,5-207,7 mm arasına çeyrek elips kapak
+  konuyor, loft'un ekstrapole edecek yeri kalmıyor. Sonuç: zmax **207,7 mm**
+  (tam zarf), dilim genişlikleri `111,7 110,4 107,8 101,0 79,2 69,7 63,7 7,0`
+  ile tek yönlü.
 - **Winglet'ler kanatla tek gövdeye kaynatılmadı.** Tabanları kanat ucunun
   içine oturur (z = −5 mm) ama ayrı katı olarak kalır; OCC'de bu birleşme
   ya hacmi şişiriyor ya sıfıra çöküyordu. Montajda ikisini `Rigid Group`
@@ -182,6 +192,15 @@ doğrulandı.
   4,61 → 7,57 cm³ (dış pala kalınlaştı) — bu bilinçli bir imalat kararıdır,
   sim geometrisinden bir sapmadır. Önce denenip elenen dört onarım yolu
   `build_tiltrotor_cad.py` içindeki not bloğunda.
+- **Pala uçları yuvarlatıldı** (1 Eylül 2026). Loft son istasyonda bitince
+  OCC ucu **düz** bir yüzle kapatıyordu, pala küt kesilmiş görünüyordu
+  (uçtan 0,3 mm'de kesit alanı zaten 10,1 mm²). `round_blade_tips` her iki
+  uca çeyrek elips kapak koyar. Kapak DIŞARI eklenmez, mevcut ucun içine
+  oturtulur — yoksa pervane çapı 256,7 → 264,2 mm büyür. Kapak boyu
+  (`PROP_TIP_CAP = 18 mm`) uç veterinden türetilmez: uçta veter 4,4 mm ama
+  18 mm içeride 20 mm, o yüzden kısa kapak (4/8/12 mm denendi) alanı
+  sıçratıyor. Sonuç: alan 0,9 → 3,9 → 6,7 → 9,1 → 11,3 diye kademeli
+  açılıyor, açıklık 256,7 mm korunuyor.
 - **Pervane dalgalanması giderildi** (1 Eylül 2026). `smooth_stations`, 61
   mesh kesitini açıklık boyunca yumuşatır. Ölçüm: veter dizisindeki yön
   değişimi **15/59 → 3/59**. Sıra bağlayıcıdır: önce yumuşatma, sonra

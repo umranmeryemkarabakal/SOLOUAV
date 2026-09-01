@@ -93,8 +93,14 @@ def mesh_in_body(name, pose, scale=1e-3):
     return W, T
 
 
-def loft_from_stations(st, axis, n_hint=None):
-    """(konum, 2B kesit) listesini 3B loft katısına çevir."""
+def loft_from_stations(st, axis, n_hint=None, spline=False):
+    """(konum, 2B kesit) listesini 3B loft katısına çevir.
+
+    `spline=True`: kesit teli poligon yerine kapalı B-spline olur. Poligon
+    kesit, 40 düz parçadan oluştuğu için kenarda köşe köşe bir tırtıklanma
+    ve yüzeyde boyuna faset bırakıyor. Kanat/elevon loft'ları hassas olduğu
+    için varsayılan poligon; şimdilik yalnızca pervane spline kullanıyor.
+    """
     wires = []
     for v, r in st:
         pts = []
@@ -106,7 +112,13 @@ def loft_from_stations(st, axis, n_hint=None):
             else:
                 p = (v, a, b)
             pts.append(Vector(p[0] * MM, p[1] * MM, p[2] * MM))
-        wires.append(cq.Wire.makePolygon(pts, close=True))
+        if spline:
+            # periodic=True iken ilk nokta TEKRARLANMAZ; kapanışı OCC yapar
+            # (tekrarlanırsa BSplCLib::Interpolate ile çöküyor).
+            kenar = cq.Edge.makeSpline(pts, periodic=True)
+            wires.append(cq.Wire.assembleEdges([kenar]))
+        else:
+            wires.append(cq.Wire.makePolygon(pts, close=True))
     return cq.Solid.makeLoft(wires, ruled=False)
 
 
@@ -138,12 +150,39 @@ def build_wing():
     zs = list(np.arange(0.018, 0.19, 0.012)) + [0.194, 0.200, 0.2055, 0.2072]
     stw = stations(V, tip, axis=2, vals=zs, n=48)
     stw = [(-0.005, stw[0][1])] + stw
+    stw = close_winglet_tip(stw)
     mir = [(z, np.column_stack([r[:, 0], -r[:, 1]])[::-1]) for z, r in stw]
-
-    # Not: pürüzsüz loft winglet ucunda mesh zarfını ~3.5 mm aşıyor
-    # (zmax 211.2 mm, mesh 207.7 mm). Boolean kırpma bu gövdede kararsız
-    # çalıştığı için taşma bırakıldı; sonuç açıklığın %0.16'sı mertebesinde.
     return wing, loft_from_stations(stw, axis=2), loft_from_stations(mir, axis=2)
+
+
+def close_winglet_tip(stw, z_env=0.2077, z_kok=0.2055, n_cap=3, kalan=0.10):
+    """Winglet ucunu mesh zarfında kapat.
+
+    SORUN: winglet kesitleri sağlamdır (dolgu 0,67-0,77), ama veter son
+    7 mm'de 111 -> 68 -> 20 mm'ye çöküyor ve `makeLoft(ruled=False)` pürüzsüz
+    yüzeyi son kesitin ÖTESİNE sürüklüyor: gövde 207,2'de bitmesi gerekirken
+    211,2 mm'ye uzanıyor. O uzantı kendi kendini kesen ince bir dilim —
+    görünürde kanat ucundan fırlayan bir artık.
+
+    Ölçüm (üst 8 mm'de dilim genişlikleri):
+      taşmalı : 0,0 111,8 0,0 0,0 0,0 110,4 109,3 0,0   <- kopuk, dejenere
+      kapaklı : 111,7 110,4 107,8 101,0 79,2 69,7 63,7 7,0
+
+    Boolean ile kırpmak denendi, `Bnd_Box is void` ile çöktü (README'nin
+    "boolean kırpma bu gövdede kararsız" notu). Onun yerine son istasyon
+    atılıp z_kok..z_env arasına çeyrek elips kapak konuyor, böylece loft'un
+    ekstrapole edecek yeri kalmıyor ve gövde tam zarfta bitiyor.
+    """
+    st = [s for s in stw if s[0] <= z_kok]
+    if len(st) < 3:
+        return stw
+    kok = np.asarray(st[-1][1], float)
+    m0 = kok.mean(axis=0)
+    for i in range(1, n_cap + 1):
+        u = i / float(n_cap)
+        s = max(float(np.sqrt(max(1.0 - u * u, 0.0))), kalan)
+        st.append((z_kok + (z_env - z_kok) * u, m0 + (kok - m0) * s))
+    return st
 
 
 def build_elevon(side):
@@ -242,6 +281,8 @@ def smooth_stations(st, w=2):
 
 PROP_MIN_T = 1.2      # mm — dış paladaki asgari kesit kalınlığı (imalat kısıtı)
 PROP_DOLGU = 0.35     # bunun altında dolgu oranı olan kesit "katlanmış" sayılır
+PROP_TIP_CAP = 18.0   # mm — pala ucu yuvarlatma boyu (4/8/12 denendi, sıçramalı)
+PROP_N = 120          # kesit başına nokta (40 kenarda tırtıklanma bırakıyordu)
 
 
 def _kesit_olcu(r):
@@ -322,6 +363,59 @@ def rebuild_thin_sections(st, n=40):
     return out
 
 
+def round_blade_tips(st, n_cap=4, kalan=0.12):
+    """Pala uçlarını yuvarlayarak kapat.
+
+    Loft son istasyonda bitince OCC ucu DÜZ bir yüzle kapatıyor; pala küt
+    kesilmiş görünüyor. Burada her iki uca, çeyrek elips profiliyle küçülen
+    birkaç istasyon eklenir: uzaklık u için ölçek = sqrt(1-u^2), yani uç
+    yuvarlak bir kapakla biter.
+
+    `kalan`: en son kesit sıfıra indirilmez (dejenere tel loft'u geçersiz
+    kılıyor); bu oranda küçük bir yüz bırakılır — uç yarıçapının %12'si,
+    gözle görünmez ama katı geçerli kalır.
+    """
+    if len(st) < 5:
+        return st
+    xs = [x for x, _ in st]
+    R = [np.asarray(r, float) for _, r in st]
+
+    def kapak(uc_i, yon):
+        """uc_i: uç istasyonun indeksi. Kapak DIŞARI EKLENMEZ, mevcut ucun
+        içine oturtulur — yoksa pervane çapı büyür (ölçüm: 256,7 -> 264,2 mm).
+
+        Kapak boyu uç kesitinin veterinden türetilmiyor: uçta veter 4,4 mm
+        ama hemen 18 mm içeride 20 mm, dolayısıyla kısa kapak (2-12 mm)
+        alanı bir anda sıçratıyor (ölçüm: 0,0 0,0 8,4 0,0 12,8). 18 mm'lik
+        kapak kademeli geçiş veriyor (0,9 3,9 6,7 9,1 11,3 13,1).
+        """
+        x_uc = xs[uc_i]
+        R_cap = PROP_TIP_CAP / 1000.0
+        x_bas = x_uc - yon * R_cap
+        # kapak bölgesindeki mevcut istasyonlar atılır
+        if yon > 0:
+            tut = [i for i in range(len(xs)) if xs[i] < x_bas]
+        else:
+            tut = [i for i in range(len(xs)) if xs[i] > x_bas]
+        if not tut:
+            return None
+        kok = R[tut[-1] if yon > 0 else tut[0]]
+        _, _, _, mrk0, _ = _kesit_olcu(kok)
+        yeni = []
+        for i in range(1, n_cap + 1):
+            u = i / float(n_cap)
+            s = max(float(np.sqrt(max(1.0 - u * u, 0.0))), kalan)
+            yeni.append((x_bas + yon * R_cap * u, mrk0 + (kok - mrk0) * s))
+        return tut, yeni
+
+    a = kapak(0, -1.0)
+    b = kapak(len(st) - 1, +1.0)
+    if a is None or b is None:
+        return st
+    orta = [i for i in a[0] if i in b[0]]
+    return a[1][::-1] + [(xs[i], R[i]) for i in orta] + b[1]
+
+
 # ⛔ PALA UCU İÇİN ÖNCE DENENEN VE ELENEN YOLLAR (1 Eylül 2026)
 #
 # Uç dejenerasyonunu ONARMAYA çalışan üç yol da başarısız oldu; hepsi ya
@@ -359,13 +453,19 @@ def build_prop(mesh_name, center):
     """
     V, T = load_dae_points(os.path.join(MESH_DIR, 'iris_prop_cw.dae'))  # ölçek 1 (m)
     x0, x1 = V[:, 0].min(), V[:, 0].max()
+    # PROP_N=120: kesit teli poligon olduğu için 40 nokta kenarda gözle
+    # görülür tırtıklanma bırakıyordu. Spline tel denendi, OCC'de çöktü
+    # (BSplCLib::Interpolate, sonra BRep_API: command not done -- kesitlerde
+    # çok yakın ardışık noktalar var). Nokta sayısını artırmak aynı sonucu
+    # güvenle veriyor: yüz sayısı 42 -> 122, hacim farkı %1, açıklık aynı.
     st = stations(V, T, axis=0, vals=np.linspace(x0 + 5e-4, x1 - 5e-4, 61),
-                  n=40, fallback=True)
+                  n=PROP_N, fallback=True)
     # SIRA ÖNEMLİ: önce yumuşat, SONRA yeniden inşa et. Tersi durumda
     # yumuşatma, yeni kurulan elipsi hâlâ katlanmış komşularıyla ortalayıp
     # katlanmayı geri getiriyor (ölçüm: uç dolgu oranı 0,32'de takılıyor).
     st = smooth_stations(st)
-    st = rebuild_thin_sections(st)
+    st = rebuild_thin_sections(st, n=PROP_N)
+    st = round_blade_tips(st)
     if mesh_name.endswith('ccw'):
         st = [(x, np.column_stack([r[:, 0], -r[:, 1]])[::-1]) for x, r in st]
     return loft_from_stations(st, axis=0).translate(tuple(c * MM for c in center))
