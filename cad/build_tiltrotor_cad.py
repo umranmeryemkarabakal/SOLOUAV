@@ -328,25 +328,64 @@ def rebuild_thin_sections(st, n=40):
     if not saglam:
         return st
 
-    def kalinlik(i):
-        """Sağlam komşulardan doğrusal ara/dış değer, PROP_MIN_T ile sınırlı."""
+    def _ara(i, deger):
+        """Sağlam komşular arasında doğrusal ara/dış değer."""
         sol = [j for j in saglam if j <= i]
         sag = [j for j in saglam if j >= i]
         if sol and sag:
             a, b = sol[-1], sag[0]
-            t = olc[a][1] if a == b else (
-                olc[a][1] + (olc[b][1] - olc[a][1]) * (i - a) / float(b - a))
-        else:
-            t = olc[(sol or sag)[-1 if sol else 0]][1]
-        return max(t, PROP_MIN_T / 1000.0)
+            if a == b:
+                return deger(a)
+            return deger(a) + (deger(b) - deger(a)) * (i - a) / float(b - a)
+        return deger((sol or sag)[-1 if sol else 0])
+
+    def _alan(j):
+        r = R[j]
+        return abs(0.5 * np.sum(r[:, 0] * np.roll(r[:, 1], -1)
+                                - np.roll(r[:, 0], -1) * r[:, 1]))
+
+    def kalinlik(i, veter):
+        """Kalınlığı ALAN sürekliliğinden türet, kalınlık eğiliminden değil.
+
+        Kalınlığı komşulardan taşımak, elips ile ölçülen kamburlu profilin
+        dolgu oranları farklı olduğu için geçişte alan çentiği bırakıyordu
+        (ölçüm: 38,1 29,9 24,7 30,5 -- komşuları ~30 iken 24,7'ye düşüyor).
+        Görünen büyüklük alan olduğu için hedef alanı komşulardan taşıyıp
+        elipsin kalınlığını ondan çözüyoruz: A = pi/4 * veter * t.
+        """
+        hedef = _ara(i, _alan)
+        t = 4.0 * hedef / (np.pi * veter) if veter > 0 else PROP_MIN_T / 1000.0
+        return max(float(t), PROP_MIN_T / 1000.0)
+
+    # ⛔ GEÇİŞ HARMANI — DENENDİ, GERİ ALINDI (1 Eylül 2026)
+    # Sınıra yakın sağlam istasyonları da kendi elipslerine doğru kademeli
+    # harmanlamak mantıklı görünüyordu (kamburlu profil -> simetrik elips
+    # geçişini yumuşatmak için). Ölçüm tersini söyledi; x=290..340 arasında
+    # kesit alanı:
+    #   harman yok : 45,5 43,5 38,1 29,9 24,7 30,5   (hafif çentik)
+    #   harman = 2 : 45,4 43,7 36,3 19,7 20,4 31,2
+    #   harman = 4 : 45,3 32,5 24,7 21,0 22,8 30,7   (belirgin çukur)
+    # Kamburlu bir profille elipsi nokta nokta karıştırmak, ikisinin yay
+    # uzunluğu dağılımı farklı olduğu için kesiti sıkıştırıyor. BLEND=0.
+    BLEND = 0
+
+    def agirlik(i):
+        if bozuk(olc[i]):
+            return 1.0
+        d = min((abs(i - j) for j in range(len(olc)) if bozuk(olc[j])),
+                default=None)
+        if d is None or d > BLEND:
+            return 0.0
+        return 1.0 - d / float(BLEND + 1)
 
     out = []
     for i, (x, r) in enumerate(st):
         veter, kal, ana, mrk, dolgu = olc[i]
-        if not bozuk(olc[i]):
+        w = agirlik(i)
+        if w <= 0.0:
             out.append((x, r))
             continue
-        t = kalinlik(i)
+        t = kalinlik(i, veter)
         a, b = veter / 2.0, t / 2.0
         # Elipsi ÖNCE yoğun üret, SONRA resample() ile yay uzunluğuna göre
         # 40 noktaya indir. Bu şart: ölçülen kesitler yay uzunluğuna göre
@@ -359,7 +398,11 @@ def rebuild_thin_sections(st, n=40):
         el = np.column_stack([a * np.cos(th), b * np.sin(th)])
         dik = np.array([-ana[1], ana[0]])
         yogun = mrk + el[:, :1] * ana + el[:, 1:2] * dik
-        out.append((x, np.asarray(resample(yogun, n=n, start_by='maxx'), float)))
+        elips = np.asarray(resample(yogun, n=n, start_by='maxx'), float)
+        if w >= 1.0 or elips.shape != r.shape:
+            out.append((x, elips))
+        else:
+            out.append((x, (1.0 - w) * np.asarray(r, float) + w * elips))
     return out
 
 
