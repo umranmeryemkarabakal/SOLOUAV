@@ -73,18 +73,18 @@
   limit dışı  rotor_2_tail @ 90°: tail_boom (8.5 cm³)
 
 [8] Kumanda yüzeyi sapması
-  UYARI  elevon_left @ -44.7°: wing (+0.9 cm³) — sapmada ana yüzeye giriyor
-  UYARI  elevon_left @ +44.7°: wing (+0.8 cm³) — sapmada ana yüzeye giriyor
+  ok     elevon_left @ -44.7°: temiz
+  ok     elevon_left @ +44.7°: temiz
   ok     elevon_right @ -44.7°: temiz
-  UYARI  elevon_right @ +44.7°: wing (+0.3 cm³) — sapmada ana yüzeye giriyor
+  ok     elevon_right @ +44.7°: temiz
   ok     elevator_left @ -29.8°: temiz
-  ok     elevator_left @ +29.8°: temiz
+  UYARI  elevator_left @ +29.8°: tail_boom (+0.1 cm³, film 0.90 mm) — sapmada ana yüzeye giriyor
   ok     elevator_right @ -29.8°: temiz
-  ok     elevator_right @ +29.8°: temiz
+  UYARI  elevator_right @ +29.8°: tail_boom (+0.1 cm³, film 0.90 mm) — sapmada ana yüzeye giriyor
   ok     rudder @ -29.8°: temiz
   ok     rudder @ +29.8°: temiz
 
-ÖZET: 61 geçti, 3 uyarı, 0 CAD hatası, 0 kaynak model bulgusu, 5 limit dışı
+ÖZET: 62 geçti, 2 uyarı, 0 CAD hatası, 0 kaynak model bulgusu, 5 limit dışı
 CAD hataları = STEP çıktısı SDF ile uyuşmuyor.
 Kaynak model bulguları = CAD doğru, SDF geometrisinin kendisi çakışıyor.
 Limit dışı = eklem <upper> sınırının ötesi; araç o açıya gidemez.

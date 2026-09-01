@@ -14,6 +14,7 @@ Kontroller:
   7. Tilt süpürme— pervane diski 0…90° arasında neye çarpıyor
                    (eklem <upper> tavanının ötesi 'limit dışı' işaretlenir)
   8. Yüzey sapma — elevon/elevatör/rudder tam açıda neye çarpıyor
+                   (ortalama film kalınlığıyla yargılanır, hacimle değil)
 """
 import os
 import re
@@ -366,6 +367,34 @@ def check_tilt_sweep(parts, hinges, joints):
                 info(f'{rotor} @ {deg:2d}°: temiz')
 
 
+# Sapmada kumanda yüzeyi ile ana yüzey arasındaki artık girişim, MUTLAK HACİMLE
+# değil ORTALAMA FİLM KALINLIĞIYLA yargılanır (2026-09-01).
+#
+# Neden: elevon kanatla aynı loft yüzeyinden kesiliyor, yani ikisi duruşta zaten
+# yüzey olarak çakışık (kasıtlı, bkz. [6] izin listesi). Sapmada bu çakışıklık
+# mikron mertebesinde değişiyor, ama 0.5 m açıklık × 0.15 m veter bir yüzeyde
+# 0.01 mm'lik bir film bile 0.7 cm³ hacim yapıyor. Mutlak hacim eşiği bu yüzden
+# yarım metrelik parçalarda anlamsız: ölçtüğü şey parçanın büyüklüğü.
+#
+# Film = artış hacmi / temas ayak izi. Gerçek bir girişim (köşe ana yapıya
+# saplanıyor) yüksek film verir; paylaşılan yüzeyin sayısal kalıntısı vermez.
+FILM_TOL = 0.05        # mm, ortalama film — bunun altı yüzey çakışması sayılır
+FILM_VOL_FLOOR = 50.0  # mm³, altında film hesaplamaya değmez
+
+
+def mean_film(a, b, vol):
+    """Ortalama girişim kalınlığı [mm] = hacim / temas ayak izi.
+
+    Ayak izi, girişim katısının en büyük iki bbox kenarının çarpımı — film
+    hangi düzleme yayılırsa yayılsın (elevon x-y'ye, rudder x-z'ye) doğru
+    yüzeyi seçer.
+    """
+    lo, hi = bb(a.intersect(b))
+    e = sorted(hi - lo, reverse=True)
+    area = e[0] * e[1]
+    return vol / area if area > 1e-9 else float('inf')
+
+
 def check_surface_sweep(parts, hinges):
     print('\n[8] Kumanda yüzeyi sapması')
     pairs = [('left_elevon_joint', 'elevon_left', ['wing', 'winglet_left']),
@@ -381,10 +410,15 @@ def check_surface_sweep(parts, hinges):
             grew = []
             for n in neigh:
                 v = common_volume(s, parts[n])
-                if v - base[n] > 200.0:      # 0.2 cm³ üzeri artış
-                    grew.append((n, (v - base[n]) / 1000))
+                d = v - base[n]
+                if d <= FILM_VOL_FLOOR:
+                    continue
+                film = mean_film(s, parts[n], d)
+                if film > FILM_TOL:
+                    grew.append((n, d / 1000, film))
             if grew:
-                txt = ', '.join(f'{n} (+{v:.1f} cm³)' for n, v in grew)
+                txt = ', '.join(f'{n} (+{v:.1f} cm³, film {f:.2f} mm)'
+                                for n, v, f in grew)
                 warn(f'{part} @ {deg:+.1f}°: {txt} — sapmada ana yüzeye giriyor')
             else:
                 ok(f'{part} @ {deg:+.1f}°: temiz')
