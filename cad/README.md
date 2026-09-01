@@ -7,10 +7,14 @@ parametrik katı gövdelere çevirir.
 cad/
 ├── build_tiltrotor_cad.py   üretici betik (cadquery)
 ├── sdf_mesh.py              COLLADA okuma + düzlem kesiti + loft hazırlığı
-├── MONTAJ.md                eklem tablosu, Fusion/SolidWorks montaj adımları
+├── dogrula.py               bağımsız denetleyici — STEP çıktısını SDF'e karşı sınar
+├── dogrulama_raporu.txt     son denetim çıktısı (dogrula.py üretir)
+├── render_onizleme.py       üç görünüş önizlemesi üretir
 ├── onizleme.png             üç görünüş doğrulaması
+├── fusion_01_import.py      Fusion 360'a 23 parçayı içe aktarma betiği (Aşama 1)
+├── MONTAJ.md                eklem tablosu, montaj adımları, imalat kısıtları
 └── step/
-    ├── tiltrotor_assembly.step   20 gövdenin tamamı (tek dosya)
+    ├── tiltrotor_assembly.step   23 gövdenin tamamı (tek dosya)
     └── parts/*.step              parça başına ayrı dosya
 ```
 
@@ -54,6 +58,35 @@ Mesh dizini varsayılan olarak
 Kaynak model: `Tools/simulation/gz/models/tiltrotor_indi/model.sdf`
 (depodaki `tiltrotor_tailplane_model.sdf` ile birebir aynı).
 
+## Fusion 360'a aktarma
+
+```
+Fusion 360 > Utilities > Scripts and Add-Ins > Scripts > + > cad/fusion_01_import.py
+```
+
+Boş bir Design açıp çalıştırın. Betik 23 parçayı ayrı bileşen olarak içe
+aktarır ve 12 sabit parçayı `base_link` adlı Rigid Group'a alır. Parçalar
+mutlak konumda üretildiği için occurrence dönüşümü birim matris kalır — araç
+kendiliğinden doğru oturur, hizalama gerekmez.
+
+**Parça klasörü otomatik bulunur.** Sırayla denenen yerler: `TILTROTOR_CAD_PARTS`
+ortam değişkeni, `~/Documents/tiltrotor_cad/step/parts`,
+`~/tiltrotor_project_updates/cad/step/parts`, `~/SOLOUAV/cad/step/parts`.
+Hiçbiri tutmazsa betik durur ve denediği yolları listeler; o zaman dosyanın
+başındaki `BASE` değişkenine tam yolu yazın.
+
+Betik iki çalıştırma yolunu da destekler: Fusion'ın Scripts paneli `run(context)`
+çağırır; MCP köprüsünün `fusion_execute`'u ise kodu düz `exec` eder ve `run()`'ı
+kimse çağırmaz — dosyanın sonundaki koruma bu ikinci durumu yakalar.
+
+Başlamadan önce üç şeyi kontrol eder ve gerekirse durur: klasör bulundu mu, 23
+STEP dosyasının hepsi yerinde mi, bu Design'da aynı adlı bileşenler zaten var mı
+(ikinci kez çalıştırma kopya üretmesin diye).
+
+**Sonraki aşama** 11 hareketli parça için revolute eklemler — tablo ve limitler
+`MONTAJ.md`'de. **Kuyruk tilt limiti 0…20°**, kanatlarınki gibi 90° değil;
+90° yazılırsa disk kuyruk çubuğunun içinden geçer.
+
 ## Bilinen sapmalar
 
 - **Winglet ucunda ~3.5 mm loft taşması** (z 211.2 mm, mesh zarfı 207.7 mm).
@@ -79,5 +112,39 @@ Kaynak model: `Tools/simulation/gz/models/tiltrotor_indi/model.sdf`
 
 ## Doğrulama
 
-Tüm 20 STEP dosyası geri okundu: her biri `BRepCheck_Analyzer` ile geçerli ve
-tek kapalı katı. Ana ölçülerin SDF/mesh karşılaştırması `MONTAJ.md` sonundadır.
+```bash
+/path/to/cadquery-venv/bin/python cad/dogrula.py > cad/dogrulama_raporu.txt
+/path/to/cadquery-venv/bin/python cad/render_onizleme.py     # onizleme.png
+```
+
+`dogrula.py` üretici betiğin tablolarını **kullanmaz**; SDF'i baştan ayrıştırır,
+böylece elle aktarma hataları da yakalanır. Sekiz denetim: kapsam, ölçü, mesh
+zarfı, katı sağlığı, menteşe, duruşta girişim, tilt süpürmesi, yüzey sapması.
+
+Çıktı dört sınıfa ayrılır ve **yalnızca ilki bir CAD hatasıdır**:
+
+| sınıf | anlamı |
+|---|---|
+| `HATA` | STEP çıktısı SDF ile uyuşmuyor — üretici betik düzeltilmeli |
+| `MODEL` | CAD doğru, **SDF geometrisinin kendisi** çakışıyor |
+| `UYARI` | çalışma aralığında kalan, incelenmesi gereken girişim |
+| `limit dışı` | eklem `<upper>` sınırının ötesi; araç o açıya gidemez |
+
+İki denetim **eşik seçimiyle** çalışır, ikisi de kasıtlı:
+
+- **Tilt süpürmesi** eklem tavanını SDF'ten okur (`joints[jn]['upper']`). Kuyruk
+  rotoru 30°'den sonra çubuğa girer ama tavan 20°'dir, dolayısıyla o açılar
+  bulgu değil `limit dışı` sayılır. Satırlar yine basılır: limit ileride
+  gevşetilirse bedelinin ne olacağı kayıtlı kalsın diye.
+- **Yüzey sapması** mutlak hacimle değil **ortalama film kalınlığıyla** yargılar
+  (`FILM_TOL = 0,05 mm`). Elevon kanatla aynı loft yüzeyinden kesildiği için
+  ikisi duruşta zaten yüzey olarak çakışık; 0,5 m açıklıkta 0,01 mm'lik bir film
+  bile 0,7 cm³ hacim yapar. Mutlak hacim eşiği bu yüzden büyük parçalarda
+  ölçtüğü şeyi değil parçanın boyutunu yansıtır.
+
+Son durum: **62 geçti, 2 uyarı, 0 CAD hatası, 0 kaynak model bulgusu,
+5 limit dışı.** 23 STEP dosyasının hepsi `BRepCheck_Analyzer` ile geçerli ve tek
+kapalı katı. Kalan 2 uyarı elevatör–kuyruk çubuğu girişimidir; bilerek açık
+bırakıldı ve montajda çözülecek (bkz. `MONTAJ.md`, imalat kısıtı bölümü).
+
+Ana ölçülerin SDF/mesh karşılaştırması `MONTAJ.md` sonundadır.
