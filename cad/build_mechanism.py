@@ -266,21 +266,69 @@ def build_gear(wing, boom):
 # --------------------------------------------------------------------------
 # 3) KUMANDA YÜZEYİ: menteşe boşluğu + tahrik
 # --------------------------------------------------------------------------
-def hinge_relief(surf, parent, A, D, lim_deg):
-    """Yüzeyin TÜM sapma aralığında ana gövdeye giren malzemesini kapsayan
-    silindirik boşluk. Dönme yarıçapı koruduğu için silindir yeterlidir."""
-    rmax = 0.0
-    for deg in (-lim_deg, -lim_deg / 2, 0.0, lim_deg / 2, lim_deg):
-        moved = rot_about(surf, A, D, deg)
-        try:
-            hit = parent.intersect(moved)
-        except Exception:                                     # noqa: BLE001
-            continue
-        if hit.Volume() > 1e-3:
-            rmax = max(rmax, axis_radius(hit, A, D))
-    if rmax <= 0.0:
-        return None, 0.0
-    R = rmax + CLEAR
+def shape_hinge_nose(surf, A, D):
+    """Kumanda yüzeyinin BURNUNU menteşe eksenine göre silindir yap.
+
+    NEDEN: yüzeyin burnu silindirik olmadığı sürece (ölçüm: elevon burnunda
+    yarıçap 2-11,6 mm arasında geziyor) ±44,7°'de sıyırmaması ancak yarıçapı
+    o azami değere kadar büyük bir cepse mümkün. O cep de kanatta kocaman
+    bir oyuk bırakıyor ve kumanda yüzeyi kanattan kopuk görünüyor.
+
+    Gerçek kumanda yüzeyleri gibi: burun eksene göre silindire tıraşlanır,
+    arkası aynen kalır. Böylece kanattaki boşluk r_burun + pay kadar olur
+    ve menteşe hattı ince, düzgün bir çizgi haline gelir.
+    """
+    aft, _ = perp_frame(D)
+    t0, t1 = axial_span(surf, A, D)
+    # burun = eksenin ÖNÜNDE kalan malzeme; gereken yarıçap onun azamisi
+    on = bx(-4000, 4000, -4000, 4000, -4000, 4000)
+    on = on.cut(yari_uzay(A, D, aft, t0 - 20, t1 + 20))
+    try:
+        burun = surf.intersect(on)
+        r_burun = axis_radius(burun, A, D) if burun.Volume() > 1e-3 else 0.0
+    except Exception:                                          # noqa: BLE001
+        r_burun = 0.0
+    if r_burun <= 0.0:
+        return surf, 0.0
+    tut = cy(along(A, D, t0 - 20), along(A, D, t1 + 20), r_burun)
+    tut = tut.fuse(yari_uzay(A, D, aft, t0 - 20, t1 + 20)).clean()
+    return surf.intersect(tut).clean(), r_burun
+
+
+def yari_uzay(A, D, aft, t0, t1):
+    """Menteşe düzleminin ARKASINDA kalan büyük kutu (aft yönü pozitif)."""
+    L = 4000.0
+    kutu = Solid.makeBox(L, L, L, Vector(0, 0, 0))
+    # kutuyu, bir yüzü menteşe ekseninden geçecek ve +aft yönüne bakacak
+    # şekilde yerleştir
+    hd = (aft[1] * D[2] - aft[2] * D[1],
+          aft[2] * D[0] - aft[0] * D[2],
+          aft[0] * D[1] - aft[1] * D[0])
+    pl = cq.Plane(origin=Vector(*offset(along(A, D, (t0 + t1) / 2.0), aft, L / 2.0)),
+                  xDir=Vector(*aft), normal=Vector(*hd))
+    return cq.Workplane(pl).box(L, L, L).val()
+
+
+def hinge_relief(surf, parent, A, D, lim_deg, r_burun=0.0):
+    """Burun yarıçapı + pay kadar silindirik boşluk.
+
+    Burun silindire tıraşlandıysa (`shape_hinge_nose`) boşluk küçük ve
+    düzgün olur. Tıraşlanmadıysa eski davranışa düşer: yüzeyin tüm sapma
+    aralığında gövdeye giren malzemesinin azami yarıçapı ölçülür."""
+    if r_burun > 0.0:
+        R = r_burun + CLEAR
+    else:
+        rmax = 0.0
+        for deg in (-lim_deg, -lim_deg / 2, 0.0, lim_deg / 2, lim_deg):
+            try:
+                hit = parent.intersect(rot_about(surf, A, D, deg))
+            except Exception:                                  # noqa: BLE001
+                continue
+            if hit.Volume() > 1e-3:
+                rmax = max(rmax, axis_radius(hit, A, D))
+        if rmax <= 0.0:
+            return None, 0.0
+        R = rmax + CLEAR
     t0, t1 = axial_span(surf, A, D)
     return cy(along(A, D, t0 - 10), along(A, D, t1 + 10), R), R
 
@@ -425,7 +473,9 @@ def main():
         D = unit(J[surf]['axis'])
         lim = math.degrees(J[surf]['upper'])
         sb = load_part(surf)
-        cutter, R = hinge_relief(sb, parents[pname], A, D, lim)
+        sb, r_burun = shape_hinge_nose(sb, A, D)
+        parts[surf] = sb                       # tıraşlanmış yüzey de yazılır
+        cutter, R = hinge_relief(sb, parents[pname], A, D, lim, r_burun)
         if cutter is None:
             print('  {:16s} bosluk gerekmedi'.format(surf))
             continue
