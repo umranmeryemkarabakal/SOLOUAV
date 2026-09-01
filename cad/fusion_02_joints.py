@@ -66,7 +66,7 @@ def parse_sdf_joints(path):
       nokta = cocuk link pose'u + eklem pose'u   (model cercevesinde, m -> mm)
       eksen = <xyz>, use_parent_model_frame yoksa eklem pose'unun yaw'i ile dondurulur
     """
-    s = open(path).read()
+    s = open(path, encoding='utf-8').read()
 
     # DIKKAT: bu SDF'te link adlari CIFT tirnakli, eklem adlari TEK tirnakli.
     # Iki stili de kabul et -- yalnizca birini yakalayan bir regex, link pose'u

@@ -35,7 +35,7 @@ def rapordan_oku(path):
     """[5] Menteşe noktalari bolumunu ayristir."""
     out = {}
     icinde = False
-    for line in open(path):
+    for line in open(path, encoding='utf-8'):
         if line.startswith('[5]'):
             icinde = True
             continue
@@ -56,7 +56,7 @@ def main():
         return 2
 
     sys.path.insert(0, HERE)
-    kod = open(os.path.join(HERE, 'fusion_02_joints.py')).read()
+    kod = open(os.path.join(HERE, 'fusion_02_joints.py'), encoding='utf-8').read()
     ns = {'__name__': 'fusion_02_joints_test'}   # run() otomatik tetiklenmesin
     # adsk yalnizca run() icinde kullaniliyor; import satirlarini atla
     kod = re.sub(r'^import adsk\..*$', '', kod, flags=re.M)
