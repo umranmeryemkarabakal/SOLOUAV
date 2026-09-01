@@ -1,8 +1,8 @@
 # Tilt-rotor CAD montajı — eklemler ve hareket
 
-`step/parts/*.step` içindeki 20 parça **mutlak konumda** üretilmiştir: hepsini
-"orijine göre yerleştir" seçeneğiyle içe aktarırsanız araç kendiliğinden doğru
-biçimde oturur. Sonrasında yalnızca eklemleri tanımlamanız yeterli.
+`step/parts/*.step` içindeki 23 parça (12 sabit + 11 hareketli) **mutlak
+konumda** üretilmiştir: hepsini "orijine göre yerleştir" seçeneğiyle içe
+aktarırsanız araç kendiliğinden doğru biçimde oturur. Sonrasında yalnızca eklemleri tanımlamanız yeterli.
 
 Koordinat sistemi SDF gövde çerçevesidir: **+x burun, +y sol kanat, +z yukarı**,
 başlangıç `base_link`. Birim **mm**. (SDF'teki `<model><pose>` z = 246 mm yer
