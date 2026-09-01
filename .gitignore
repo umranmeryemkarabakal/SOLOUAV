@@ -19,5 +19,8 @@ _backup_*/
 *.bak
 *~
 
+# --- Makineye ozel MCP sunucu tanimlari (mutlak yol icerir) ---
+.mcp.json
+
 # --- Claude Code yerel ayarları ---
 .claude/settings.local.json
