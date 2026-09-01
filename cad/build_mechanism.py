@@ -278,21 +278,39 @@ def shape_hinge_nose(surf, A, D):
     arkası aynen kalır. Böylece kanattaki boşluk r_burun + pay kadar olur
     ve menteşe hattı ince, düzgün bir çizgi haline gelir.
     """
-    aft, _ = perp_frame(D)
+    aft, n = perp_frame(D)
     t0, t1 = axial_span(surf, A, D)
-    # burun = eksenin ÖNÜNDE kalan malzeme; gereken yarıçap onun azamisi
-    on = bx(-4000, 4000, -4000, 4000, -4000, 4000)
-    on = on.cut(yari_uzay(A, D, aft, t0 - 20, t1 + 20))
-    try:
-        burun = surf.intersect(on)
-        r_burun = axis_radius(burun, A, D) if burun.Volume() > 1e-3 else 0.0
-    except Exception:                                          # noqa: BLE001
-        r_burun = 0.0
+    # Yarıçap, burnun AZAMİ YARIÇAPINDAN alınamaz: o yarıçaplı silindirle
+    # kesmek tanım gereği hiçbir şeyi kesmez (ilk sürümde tıraşlama sessizce
+    # işlemsiz kaldı, hacimler değişmedi). Menteşe ekseni yüzeyin orta
+    # kalınlığında olduğu için doğru yarıçap YARIM KALINLIKTIR; ondan taşan
+    # sivri burun kısmı tıraşlanır ve geriye gerçek bir yarım silindir kalır.
+    ust, alt = 0.0, 0.0
+    for v in surf.Vertices():
+        w = (v.X - A[0], v.Y - A[1], v.Z - A[2])
+        t = sum(w[i] * D[i] for i in range(3))
+        perp = tuple(w[i] - t * D[i] for i in range(3))
+        if sum(perp[i] * aft[i] for i in range(3)) <= 0.0:      # yalnız burun tarafı
+            h = sum(perp[i] * n[i] for i in range(3))
+            ust = max(ust, h)
+            alt = max(alt, -h)
+    # Eksen tam orta kalınlıkta DEĞİL (elevon z -11,5..0, orta -5,75; eksen -5).
+    # Yarıçapı büyük tarafa göre almak silindiri üst yüzeyden 1,5 mm dışarı
+    # taşırıyordu; küçük taraf alınırsa burun profilin içinde kalır.
+    r_burun = min(ust, alt)
     if r_burun <= 0.0:
         return surf, 0.0
+    # Burun SİVRİ olduğu için yalnız kesmek yetmez: silindirin içinde kalır ve
+    # kanattaki silindirik cebe karşı yer yer 6 mm'ye varan yarık bırakır.
+    # Gerçek kumanda yüzeyinde burun DOLU yarım silindirdir; o hacim EKLENİR.
+    on_kutu = yari_uzay(A, D, tuple(-c for c in aft), t0, t1)
+    silindir = cy(along(A, D, t0), along(A, D, t1), r_burun)
+    burun_katisi = silindir.intersect(on_kutu)
+    out = surf.fuse(burun_katisi).clean()
+    # sonra fazlalık tıraşlanır: burun tam olarak r_burun yarıçapında kalsın
     tut = cy(along(A, D, t0 - 20), along(A, D, t1 + 20), r_burun)
     tut = tut.fuse(yari_uzay(A, D, aft, t0 - 20, t1 + 20)).clean()
-    return surf.intersect(tut).clean(), r_burun
+    return out.intersect(tut).clean(), r_burun
 
 
 def yari_uzay(A, D, aft, t0, t1):
@@ -479,6 +497,18 @@ def main():
         if cutter is None:
             print('  {:16s} bosluk gerekmedi'.format(surf))
             continue
+        # Ana gövde menteşede BİTMELİ, sonra firar kenarına içbükey yuva
+        # açılmalı. Yalnızca silindir kesmek, ince yüzeylerde (tailplane
+        # 12 mm, fin 20 mm) 12 mm çaplı silindir levhayı boydan boya kesip
+        # firar şeridini gövdeden koparıyordu: elevatör-tailplane boşluğu
+        # 1 mm yerine 11 mm çıkıyordu (tailplane'in en yakın malzemesi
+        # eksenden 16 mm'ye kaçmıştı).
+        # ⛔ MENTEŞE ARKASINI KIRPMA — DENENDİ, GERİ ALINDI (1 Eylül 2026)
+        # "Ana gövde menteşede bitsin, firar kenarına içbükey yuva açılsın"
+        # fikri kuyruk için doğru ama KANAT için yıkıcı: elevon menteşe
+        # düzlemi kanadı boydan boya kesiyor ve arkasını kırpmak kanadın tüm
+        # firar bölgesini götürüyor (ölçüm: hacim 29465 -> 18030 cm3,
+        # x[-339,8..] -> x[-17,2..]). Kuyrukta da boşluğu değiştirmedi.
         parents[pname] = parents[pname].cut(cutter).clean()
         print('  {:16s} -> {:20s} mentese boslugu R={:5.2f} mm'.format(surf, pname, R))
         t0, t1 = axial_span(sb, A, D)
