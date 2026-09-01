@@ -307,17 +307,18 @@ def rebuild_thin_sections(st, n=40):
             continue
         t = kalinlik(i)
         a, b = veter / 2.0, t / 2.0
-        th = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+        # Elipsi ÖNCE yoğun üret, SONRA resample() ile yay uzunluğuna göre
+        # 40 noktaya indir. Bu şart: ölçülen kesitler yay uzunluğuna göre
+        # örnekleniyor, elips ise açıya göre üretilince noktalar uçlarda
+        # yığılıyor (ölçüm: nokta aralığı max/ort 1,55 -- ölçülenlerde 1,01).
+        # İki farklı parametrelendirme yan yana gelince loft noktaları
+        # yanlış eşleştirip geçiş bölgesinde yüzeyi buruyor; kesitlerin
+        # tek tek düzgün olması yetmiyor.
+        th = np.linspace(0.0, 2.0 * np.pi, 400, endpoint=False)
         el = np.column_stack([a * np.cos(th), b * np.sin(th)])
         dik = np.array([-ana[1], ana[0]])
-        yeni = mrk + el[:, :1] * ana + el[:, 1:2] * dik
-        # resample() ile aynı yönelim: CCW ve max-x'ten başla
-        alan = 0.5 * np.sum(yeni[:, 0] * np.roll(yeni[:, 1], -1)
-                            - np.roll(yeni[:, 0], -1) * yeni[:, 1])
-        if alan < 0:
-            yeni = yeni[::-1]
-        yeni = np.roll(yeni, -int(np.argmax(yeni[:, 0])), axis=0)
-        out.append((x, yeni))
+        yogun = mrk + el[:, :1] * ana + el[:, 1:2] * dik
+        out.append((x, np.asarray(resample(yogun, n=n, start_by='maxx'), float)))
     return out
 
 
