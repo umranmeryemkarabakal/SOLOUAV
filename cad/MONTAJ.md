@@ -212,3 +212,60 @@ hiçbiri **boşluk** aramıyordu. Artık `check_model_clearance.py` içindeki
 
 Doğrulama: **61 geçti, 0 CAD hatası**, MATLAB 8/8, tam otonom görev SITL'de
 10 evrenin 10'u (157 s).
+
+---
+
+## İmalat kısıtı — elevatör yukarı sapması (1 Eylül 2026)
+
+**Fiziksel araçta elevatörler +26°'yi geçmemeli.** Yazılım tarafında bir
+değişiklik yok ve olmayacak; bu bir montaj/imalat notudur.
+
+Her iki elevatörün **iç-arka köşesi**, yukarı sapmada kuyruk çubuğunun altına
+giriyor. Elevatör `y = 10…290` arasında, çubuk ise `y = ±20` — yani plandan
+bakıldığında elevatörün en içteki 10 mm'lik şeridi çubuğun altında kalıyor.
+Menteşe `x = −765`'te; köşe `x ≈ −808`, yani menteşenin 43 mm arkasında.
+Sapma açısı büyüdükçe bu köşe yükseliyor ve çubuğun alt yüzeyine (`z = −20`)
+dayanıyor.
+
+| sapma | girişim | en derin nokta |
+|---|---|---|
+| ≤ +26° | yok | — |
+| +27° | 0,037 cm³ | 2,7 mm |
+| +28° | 0,057 cm³ | 3,5 mm |
+| **+29,8° (SDF/kod limiti)** | **0,098 cm³** | **4,8 mm** |
+
+Aşağı sapmada (−29,8°) temiz — köşe çubuktan uzaklaşıyor. İki elevatör birebir
+simetrik. Girişim kutusu: `x −808…−798, y 10…20, z −20…−15,2`.
+
+### Neden yazılım tarafına dokunulmadı
+
+`SURF_MAX[2..4] = 0.52f` (`TiltrotorIndiParams.hpp:80`) ile SDF'teki
+`<upper>0.52</upper>` birbirine eşit ve doğru. Simülasyonda bu girişimin hiçbir
+etkisi yok: **elevatör link'lerinde `<collision>` elemanı yok** ve bütün
+link'lerde `<self_collide>0</self_collide>`. Aerodinamik lift/drag
+eklentisinden, eklem açısından geliyor — temastan değil. Dolayısıyla SITL,
+MATLAB ve HITL sonuçlarının hiçbiri bu bulgudan etkilenmiyor.
+
+Limiti 26°'ye indirmek pitch otoritesini %13 kesiyordu; elevatörün iç kenarını
+12 mm kısaltmak (`y=10` → `y=22`) girişimi tamamen kaldırıyordu ama aero panel
+alanını %4 küçültüp SITL doğrulaması gerektiriyordu. **Üçüncü yol seçildi:**
+geometri ve sabitler aynen bırakıldı, kısıt montaj notu olarak kayda geçti.
+
+### Montajda ne yapılacak — iki yoldan biri
+
+1. **Mekanik durdurucu:** elevatör servo bağlantısına yukarı yönde +26°'de
+   duran fiziksel stop konur. Tercih edilen yol; parça geometrisi SDF ile
+   birebir kalır.
+2. **Kenar kısaltma:** elevatörün iç kenarı 12 mm kısaltılır (`y=10` → `y=22`).
+   Açıklığın %4'ü; bu yapılırsa **CAD artık SDF ile birebir olmaz** ve
+   `dogrula.py` kapsam denetimi ölçü sapması verir — o yüzden ancak SDF de
+   güncellenirse yapılmalı.
+
+### Bulgu nasıl çıktı
+
+Eski `check_surface_sweep` mutlak hacim eşiği (0,2 cm³) kullanıyordu; bu
+girişim 0,098 cm³ olduğu için **eşiğin altında kalıp görünmüyordu**. Test
+ortalama film kalınlığına geçirilince (`FILM_TOL = 0,05 mm`) ortaya çıktı:
+hacmi küçük ama film 0,90 mm, yani lokalize gerçek bir saplanma. Aynı
+değişiklik, elevonların kanatla paylaştığı loft yüzeyinden gelen üç sahte
+uyarıyı da düşürdü (film 0,011 mm).
