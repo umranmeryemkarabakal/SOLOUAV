@@ -5,61 +5,76 @@ description: Reports the current flight-safety criticality (GO/NO-GO) of this ti
 
 # Uçuş güvenliği kritiklik durumu
 
-Bu skill, projedeki bilinen açık kontrol sorunlarının (özellikle
-`sitl/RUNBOOK.md` §4 ve `sitl/WLS_LOCKUP_INVESTIGATION_REPORT.md`'de
-belgelenen WLS aktüatör kilitlenmesi / yaw savrulması sorunu) GÜNCEL
-durumunu okuyup hedef ortama (donanım / SITL / MATLAB) göre bir
-GO/NO-GO değerlendirmesi verir. Amaç: her seferinde kritiklik analizini
-sıfırdan yeniden türetmek yerine, güncel belgelenmiş duruma dayalı hızlı
-ve tutarlı bir cevap vermek.
+Bu skill, projedeki bilinen açık kontrol sorunlarının GÜNCEL durumunu
+okuyup hedef ortama (donanım / SITL / MATLAB) göre bir GO/NO-GO
+değerlendirmesi verir. Amaç: kritiklik analizini her seferinde sıfırdan
+türetmek yerine, **belgelenmiş güncel duruma** dayalı hızlı ve tutarlı
+bir cevap vermek.
+
+## Kaynak dosyalar — hepsi DEPO KÖKÜNDE
+
+| dosya | ne için |
+|---|---|
+| `WLS_LOCKUP_INVESTIGATION_REPORT.md` | geliştirme günlüğü; başındaki "► BURADAN BAŞLAYIN" bloğu = güncel durum tablosu |
+| `RUNBOOK.md` | §4 başlığında sorunun ÇÖZÜLDÜ/ÇÖZÜLMEDİ durumu |
+| `HARDWARE_READINESS_CHECKLIST.md` | **donanım GO/NO-GO için asıl kaynak**; H1-H8 + B0-B5 engelleyici tablosu |
+
+⚠ **`sitl/` altındaki kopyaları OKUMAYIN.** `sitl/RUNBOOK.md` ve
+`sitl/WLS_LOCKUP_INVESTIGATION_REPORT.md` 2026-07-28 / Adım 26'da donmuş
+eski kopyalardır (kök sürümler Adım 147+). Bu skill daha önce tam olarak
+o yolları gösteriyordu ve beş hafta bayat bir cevap üretiyordu.
 
 ## Prosedür
 
-1. `sitl/WLS_LOCKUP_INVESTIGATION_REPORT.md`'nin başındaki **Durum**
-   satırını ve **§1a Uçuş kritiklik değerlendirmesi** bölümünü okuyun —
-   bu, en güncel GO/NO-GO tablosunu içerir.
-2. `sitl/RUNBOOK.md` §4'ün başlığındaki (ÇÖZÜLMEDİ/ÇÖZÜLDÜ) durumunu
-   kontrol edin — rapordan daha güncel olabilir.
-3. En son eklenen "Adım N" / "Aday çözüm N" girişini bulun (dosyanın
-   sonuna doğru) — sorunun hâlâ açık mı yoksa son oturumda çözüldü mü
-   olduğunu teyit edin. **Bu dosyaları okumadan, hafızaya veya önceki
-   bir konuşmaya dayanarak GO/NO-GO söylemeyin** — durum sık
-   güncelleniyor.
-4. Kullanıcının sorduğu hedef ortama göre cevap verin. **Raporun §1a'sı
-   birden fazla tablo içeriyor** (Adım 1-10 dönemi, Adım 11, Adım 12,
-   Adım 16). **Her zaman "★ EN GÜNCEL DURUM ★" işaretli olanı
-   kullanın.** 2026-07-27 (Adım 16) itibarıyla özet:
-   - **Gerçek donanım:** **NO-GO.** İki kök neden bulunup düzeltildi
-     (Adım 11 itki eşlemesi, Adım 12 `ROTOR_KM` işareti) ve yaw'ın
-     sınırsız dönmesi Adım 13'te durduruldu — ama **Adım 16, o
-     doğrulamaların hepsinin ~10 m/s ileri hızda yapıldığını gösterdi.**
-     Yaw'ı sönümleyen şey kontrolcü değil, ileri hızdaki aerodinamik
-     rüzgâr gülü etkisi; 2.45 m/s'de +30° yaw adımı ±25° sönümsüz
-     salınım veriyor. Bu kontrolcüde yatay pozisyon döngüsü olmadığı ve
-     airframe yapısal olarak kendini ileri ittiği için (net Fx ≥ 0,
-     çünkü tüm tiltler ≥0) **gerçek anlamda yerinde duran hover hiç
-     test edilmemiş** — ve yaw için en kötü koşul odur. Ayrıca itki
-     eşleme düzeltmesi hâlâ **Gazebo SDF sabitlerine özgü**
-     (`ROTOR_KF=2e-5`, `WMAX=1500`, `WMIN=10`) — gerçek donanımda
-     ölçülmüş motor/ESC eğrisinden yeniden türetilmeli. (`ROTOR_KM`
-     işaret düzeltmesi ise donanıma **taşınabilir**: gerçek rotor dönüş
-     yönlerinden türer, Gazebo'ya özgü değildir.)
-   - **SITL geliştirme/test:** **GO.** Aktüatör kilitlenmesi ve dikey
-     hız kontrolsüzlüğü çözüldü (845 örneklik koşuda sıfır BIG_M),
-     irtifa/roll/pitch temiz. Her "düzeldi" iddiası ≥25s'lik
-     `sitl-lockup-check` ile doğrulanmalı — **ve artık koşunun ileri
-     hızı da kaydedilmeli** (o skill'deki zorunlu adım).
-   - **Saf MATLAB geliştirme:** **GO** — sorun MATLAB referansında hiç
-     gözlenmedi. Adım 11 ve 12 bunun KESİN sebebini buldu: her iki hata
-     da plant ile kontrolcünün paylaştığı bir varsayımda olduğu için
-     MATLAB'da yapısal olarak görünmez (ikisi birlikte yanlıştır).
-5. Varsa, en son denenen ve BAŞARISIZ/GERİ ALINAN yöntemleri kısaca
-   listeleyin (kullanıcı "ne denendi" diye sorabilir) — raporun "Şu ana
-   kadarki genel çıkarımlar" bölümü bunun için iyi bir özet kaynağıdır.
+1. **`WLS_LOCKUP_INVESTIGATION_REPORT.md`'nin ilk ~50 satırını okuyun** —
+   "► BURADAN BAŞLAYIN (son güncelleme: …, Adım N)" bloğu. Güncel durum
+   tablosu ve "açık kalan teknik konular" listesi buradadır.
+   ⚠ Dosyanın içindeki **`★ EN GÜNCEL DURUM ★` işaretine GÜVENMEYİN** —
+   o işaret §1a'daki Adım 16-17 (2026-07-27/28) bloğunda duruyor ve
+   artık en güncel tablo O DEĞİL. Baştaki "BURADAN BAŞLAYIN" bloğu kazanır.
+2. **`HARDWARE_READINESS_CHECKLIST.md`'yi okuyun** — donanım sorusu
+   soruluyorsa asıl cevap buradadır ve rapordan **daha güncel olabilir**.
+   Başındaki "Kısa cevap" satırı + H1-H8/B0-B5 tablosu. 🔴 kalan
+   maddeleri ada ada sayın (kullanıcı "neden hazır değil" diye sorar).
+3. `RUNBOOK.md` §4 başlığındaki (ÇÖZÜLDÜ/ÇÖZÜLMEDİ) durumu doğrulayın.
+4. **Bu dosyaları okumadan; hafızaya, önceki bir konuşmaya veya aşağıdaki
+   snapshot'a dayanarak GO/NO-GO söylemeyin.** Durum sık güncelleniyor;
+   bu skill'in bilinen tek arıza modu budur.
+5. Kullanıcı "ne denendi" diye sorarsa: raporda **⛔ DENENDİ, GERİ ALINDI**
+   işaretli adımlar ve "Şu ana kadarki genel çıkarımlar" bölümü.
+
+## Yönlenme snapshot'ı — BAĞLAYICI DEĞİL
+
+> Aşağısı yalnızca ne arayacağınızı bilmeniz için; **çelişki halinde
+> dosyalar kazanır**. Tarihi geçmişse güncelleyin.
+
+**2026-09-01 (rapor Adım 147, kontrol listesi Adım 154) itibarıyla:**
+
+- **Gerçek donanım: 🔴 NO-GO.** Kart hiç takılmadı, hiçbir şey gerçek
+  donanımda uçmadı. Açık engelleyiciler: **H7** (kartta CPU/tick jitter
+  ölçülmedi — gövde zamanlama sarsıntısına duyarlı: aynı ikili GUI'de
+  112 BIG_M, headless 0), **H8** (RC vericisi ↔ kart yolu sınanmadı),
+  **B1** (pilot girişi + kademeli failsafe; link kaybı hâlâ 100+ m
+  sürüklenme), **H6** 🟡 (HITL airframe'i kuruldu, kartta koşmadı).
+  Ayrıca Adım 11'in itki eşlemesi hâlâ Gazebo sabitlerine kalibre
+  (`ROTOR_KF=2e-5`, `WMAX=1500`, `WMIN=10`) — gerçek motor/ESC
+  eğrisinden yeniden türetilmeli. (`ROTOR_KM` işaret düzeltmesi ise
+  donanıma **taşınabilir**: gerçek rotor dönüş yönlerinden türer.)
+- **SITL: 🟢 GO.** Tam görev 6/6 geçiyor (kalkış→ileri geçiş→sabit
+  kanat→geri geçiş→hover→iniş), sakin ve rüzgârlı dünyada. Her "düzeldi"
+  iddiası ≥25 s'lik `sitl-lockup-check` ile doğrulanmalı, **koşunun
+  ileri hızı da kaydedilmeli** (yaw sönümlemesi ileri hızdan geliyor
+  olabilir — Adım 16'nın dersi).
+- **Saf MATLAB: 🟢 GO.** Sorun MATLAB referansında hiç gözlenmedi;
+  Adım 11-12 sebebini buldu: her iki hata da plant ile kontrolcünün
+  PAYLAŞTIĞI bir varsayımdaydı, yani MATLAB'da yapısal olarak görünmez.
+- **Açık üç teknik konu:** rüzgârlı roll limit çevrimi (gecikme telafisi
+  istiyor), BRAKE→HANDOFF pitch sıçraması (+15,2°), aralıklı alçalma
+  takılması (0,6-0,8 m yer etkisi).
 
 ## Cevap formatı
 
 Kısa bir GO/NO-GO tablosu + 2-3 cümlelik gerekçe + "son güncelleme"
-olarak raporun en son Adım/Aday çözüm numarasını belirtin (böylece
-kullanıcı bilginin ne kadar güncel olduğunu bilir). Uzun bir teknik
-analiz TEKRARLAMAYIN — o zaten raporda var, yalnızca ona işaret edin.
+olarak okuduğunuz en son Adım numarasını belirtin (kullanıcı bilginin ne
+kadar taze olduğunu bilsin). Uzun teknik analizi TEKRARLAMAYIN — dosyada
+zaten var, ona işaret edin.
