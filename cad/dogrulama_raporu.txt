@@ -47,7 +47,7 @@
   ok     Beklenmeyen girişim yok
 
 [7] Tilt süpürmesi — dönen pervane diski neye çarpıyor
-  rotor_0_right: disk r=129.4 mm, kalınlık=10.6 mm, göbek [ 270.  -350.   109.9]
+  rotor_0_right: disk r=129.4 mm, kalınlık=10.6 mm, göbek [ 270.  -350.   109.9], eklem tavanı 90°
   ok     rotor_0_right @  0°: temiz
   ok     rotor_0_right @ 15°: temiz
   ok     rotor_0_right @ 30°: temiz
@@ -55,7 +55,7 @@
   ok     rotor_0_right @ 60°: temiz
   ok     rotor_0_right @ 75°: temiz
   ok     rotor_0_right @ 90°: temiz
-  rotor_1_left: disk r=129.4 mm, kalınlık=10.6 mm, göbek [270.  350.  110.1]
+  rotor_1_left: disk r=129.4 mm, kalınlık=10.6 mm, göbek [270.  350.  110.1], eklem tavanı 90°
   ok     rotor_1_left @  0°: temiz
   ok     rotor_1_left @ 15°: temiz
   ok     rotor_1_left @ 30°: temiz
@@ -63,14 +63,14 @@
   ok     rotor_1_left @ 60°: temiz
   ok     rotor_1_left @ 75°: temiz
   ok     rotor_1_left @ 90°: temiz
-  rotor_2_tail: disk r=129.4 mm, kalınlık=10.6 mm, göbek [-550.     0.    69.9]
+  rotor_2_tail: disk r=129.4 mm, kalınlık=10.6 mm, göbek [-550.     0.    69.9], eklem tavanı 20°
   ok     rotor_2_tail @  0°: temiz
   ok     rotor_2_tail @ 15°: temiz
-  MODEL  rotor_2_tail @ 30°: tail_boom (0.3 cm³)
-  MODEL  rotor_2_tail @ 45°: tail_boom (12.0 cm³)
-  MODEL  rotor_2_tail @ 60°: tail_boom (9.8 cm³)
-  MODEL  rotor_2_tail @ 75°: tail_boom (8.8 cm³)
-  MODEL  rotor_2_tail @ 90°: tail_boom (8.5 cm³)
+  limit dışı  rotor_2_tail @ 30°: tail_boom (0.3 cm³)
+  limit dışı  rotor_2_tail @ 45°: tail_boom (12.0 cm³)
+  limit dışı  rotor_2_tail @ 60°: tail_boom (9.8 cm³)
+  limit dışı  rotor_2_tail @ 75°: tail_boom (8.8 cm³)
+  limit dışı  rotor_2_tail @ 90°: tail_boom (8.5 cm³)
 
 [8] Kumanda yüzeyi sapması
   UYARI  elevon_left @ -44.7°: wing (+0.9 cm³) — sapmada ana yüzeye giriyor
@@ -84,6 +84,7 @@
   ok     rudder @ -29.8°: temiz
   ok     rudder @ +29.8°: temiz
 
-ÖZET: 61 geçti, 3 uyarı, 0 CAD hatası, 5 kaynak model bulgusu
+ÖZET: 61 geçti, 3 uyarı, 0 CAD hatası, 0 kaynak model bulgusu, 5 limit dışı
 CAD hataları = STEP çıktısı SDF ile uyuşmuyor.
 Kaynak model bulguları = CAD doğru, SDF geometrisinin kendisi çakışıyor.
+Limit dışı = eklem <upper> sınırının ötesi; araç o açıya gidemez.

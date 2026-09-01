@@ -12,6 +12,7 @@ Kontroller:
   5. Menteşe     — her eklem noktası ilgili katının içinde mi
   6. Girişim     — duruşta parçalar birbirine giriyor mu
   7. Tilt süpürme— pervane diski 0…90° arasında neye çarpıyor
+                   (eklem <upper> tavanının ötesi 'limit dışı' işaretlenir)
   8. Yüzey sapma — elevon/elevatör/rudder tam açıda neye çarpıyor
 """
 import os
@@ -53,6 +54,19 @@ def model(m):
     """CAD doğru ama kaynak SDF'in kendi geometrisi çakışıyor."""
     _model.append(m)
     print('  MODEL  ' + m)
+
+
+_info = []
+
+
+def info(m):
+    """Eklem limitinin dışındaki açı: araç oraya gidemez, bulgu sayılmaz.
+
+    Yine de yazdırılır — limit ileride gevşetilirse bedelinin ne olacağı
+    kayıtlı kalsın diye (bkz. model.sdf motor_2_joint <upper> notu).
+    """
+    _info.append(m)
+    print('  limit dışı  ' + m)
 
 
 # --------------------------------------------------------------- SDF ayrıştırma
@@ -313,7 +327,7 @@ def rotor_disc(parts, name, hub):
     return cq.Solid.makeCylinder(r, t, pnt=Vector(hub[0], hub[1], hub[2] - t / 2)), r, t
 
 
-def check_tilt_sweep(parts, hinges):
+def check_tilt_sweep(parts, hinges, joints):
     print('\n[7] Tilt süpürmesi — dönen pervane diski neye çarpıyor')
     groups = [('motor_0_joint', 'rotor_0_right', 'motor_0_right'),
               ('motor_1_joint', 'rotor_1_left', 'motor_1_left'),
@@ -330,7 +344,10 @@ def check_tilt_sweep(parts, hinges):
         hub[0] = (m_lo[0] + m_hi[0]) / 2
         hub[1] = (m_lo[1] + m_hi[1]) / 2
         disc, r, t = rotor_disc(parts, rotor, hub)
-        print(f'  {rotor}: disk r={r:.1f} mm, kalınlık={t:.1f} mm, göbek {np.round(hub, 1)}')
+        # Eklem tavanı SDF'ten okunur: üstündeki açılara araç gidemez.
+        lim = math.degrees(joints[jn]['upper'])
+        print(f'  {rotor}: disk r={r:.1f} mm, kalınlık={t:.1f} mm, '
+              f'göbek {np.round(hub, 1)}, eklem tavanı {lim:.0f}°')
         for deg in range(0, 91, 15):
             d = rot_y(disc, pivot, deg)
             worst = []
@@ -338,11 +355,15 @@ def check_tilt_sweep(parts, hinges):
                 v = common_volume(d, s)
                 if v > 10.0:
                     worst.append((n, v / 1000))
+            # 1° tolerans: SDF'te tavan yuvarlanmış yazılıyor (1.57 rad = 89.95°)
+            reach = deg <= lim + 1.0
             if worst:
                 txt = ', '.join(f'{n} ({v:.1f} cm³)' for n, v in sorted(worst, key=lambda x: -x[1]))
-                model(f'{rotor} @ {deg:2d}°: {txt}')
-            else:
+                (model if reach else info)(f'{rotor} @ {deg:2d}°: {txt}')
+            elif reach:
                 ok(f'{rotor} @ {deg:2d}°: temiz')
+            else:
+                info(f'{rotor} @ {deg:2d}°: temiz')
 
 
 def check_surface_sweep(parts, hinges):
@@ -379,12 +400,13 @@ def main():
     check_solids(parts)
     hinges = check_hinges(joints, parts)
     check_static_interference(parts)
-    check_tilt_sweep(parts, hinges)
+    check_tilt_sweep(parts, hinges, joints)
     check_surface_sweep(parts, hinges)
     print(f'\nÖZET: {len(_ok)} geçti, {len(_warn)} uyarı, {len(_err)} CAD hatası, '
-          f'{len(_model)} kaynak model bulgusu')
+          f'{len(_model)} kaynak model bulgusu, {len(_info)} limit dışı')
     print('CAD hataları = STEP çıktısı SDF ile uyuşmuyor.')
     print('Kaynak model bulguları = CAD doğru, SDF geometrisinin kendisi çakışıyor.')
+    print('Limit dışı = eklem <upper> sınırının ötesi; araç o açıya gidemez.')
     return 1 if _err else 0
 
 
