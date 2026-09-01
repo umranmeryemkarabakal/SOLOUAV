@@ -12,6 +12,8 @@ cad/
 ├── render_onizleme.py       üç görünüş önizlemesi üretir
 ├── onizleme.png             üç görünüş doğrulaması
 ├── fusion_01_import.py      Fusion 360'a 23 parçayı içe aktarma betiği (Aşama 1)
+├── fusion_02_joints.py      11 revolute eklemi SDF'ten kurma betiği (Aşama 2)
+├── dogrula_fusion_parser.py Aşama 2'nin SDF ayrıştırıcısını rapora karşı sınar
 ├── MONTAJ.md                eklem tablosu, montaj adımları, imalat kısıtları
 └── step/
     ├── tiltrotor_assembly.step   23 gövdenin tamamı (tek dosya)
@@ -83,9 +85,41 @@ Başlamadan önce üç şeyi kontrol eder ve gerekirse durur: klasör bulundu mu
 STEP dosyasının hepsi yerinde mi, bu Design'da aynı adlı bileşenler zaten var mı
 (ikinci kez çalıştırma kopya üretmesin diye).
 
-**Sonraki aşama** 11 hareketli parça için revolute eklemler — tablo ve limitler
-`MONTAJ.md`'de. **Kuyruk tilt limiti 0…20°**, kanatlarınki gibi 90° değil;
-90° yazılırsa disk kuyruk çubuğunun içinden geçer.
+### Aşama 2 — eklemler
+
+```
+Scripts > + > cad/fusion_02_joints.py      (Aşama 1'den sonra, aynı Design'da)
+```
+
+11 hareketli parça için revolute eklem kurar: 3 tilt (kanat rotorları 0…90°,
+kuyruk **0…20°**), 3 serbest pervane, 5 kumanda yüzeyi (elevon ±44,7°,
+elevatör ve rudder ±29,8°).
+
+**Menteşe sayıları betiğe yazılmaz — `model.sdf`'ten okunur.** Bu depo aynı
+sayının birden çok yerde ayrışmasından zarar gördü; eklem tablosunu dördüncü bir
+kopya olarak tutmak aynı hatayı tekrarlamak olurdu. Betik SDF yolunu da otomatik
+arar (`TILTROTOR_SDF` env değişkeni, sonra parça klasörüyle aynı adaylar).
+
+Kurmadan önce kontrol eder: SDF bulundu mu, 11 eklem çıktı mı, gerekli
+bileşenler var mı, bu Design'da zaten eklem var mı. Parçalar mutlak konumda
+olduğu için menteşe noktası her iki bileşende de aynı yere inşa edilir ve eklem
+kurulurken hiçbir şey yerinden oynamaz.
+
+**Ayrıştırıcı ayrı bir kapıyla sınanır** — Fusion içinde cadquery
+kullanılamadığı için betik SDF'i kendi regex'leriyle okur, yani ayrıştırma
+mantığının ikinci bir kopyası vardır:
+
+```bash
+python3 cad/dogrula_fusion_parser.py     # bağımlılık yok, sistem python3'ü yeter
+```
+
+11 eklemin nokta/eksen/limit değerlerini `dogrulama_raporu.txt` [5] bölümüyle
+karşılaştırır. Geliştirilirken iki **gerçek ve sessiz** hatayı yakaladı:
+SDF'te link adları çift, eklem adları tek tırnaklı olduğu için elevatör ve
+rudder menteşesi 790–870 mm kaymıştı; `<inertial>` içindeki poz kütle merkezi
+olduğu halde link yerleşimi sanıldığı için elevon menteşesi tam 300 mm
+kaymıştı. Kapının ikisini de yakaladığı, hatalar kasten geri konularak
+doğrulandı.
 
 ## Bilinen sapmalar
 
