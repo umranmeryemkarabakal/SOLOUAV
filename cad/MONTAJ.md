@@ -253,9 +253,17 @@ geometri ve sabitler aynen bırakıldı, kısıt montaj notu olarak kayda geçti
 
 ### Montajda ne yapılacak — iki yoldan biri
 
-1. **Mekanik durdurucu:** elevatör servo bağlantısına yukarı yönde +26°'de
-   duran fiziksel stop konur. Tercih edilen yol; parça geometrisi SDF ile
-   birebir kalır.
+1. **Mekanik durdurucu:** elevatör servo bağlantısına yukarı yönde duran
+   fiziksel stop konur. Tercih edilen yol; parça geometrisi SDF ile birebir
+   kalır.
+
+   ⚠ **DÜZELTME (1 Eylül 2026): +26° iyimser.** Katı gövde üzerinde 1°
+   adımlarla ölçüldüğünde elevatör kuyruk çubuğuna **+24°'de değmeye
+   başlıyor** (+22° son tam temiz açı); +26°'de girişim 0,020 cm³, +29,8°'de
+   0,098 cm³. Yani +26°'lik durdurucu 0,02 cm³'lük bir temasa izin veriyor.
+   **Temiz sınır ~+23°.** Ölçüm `cad/dogrula_mekanizma.py` [3] denetiminde
+   yeniden üretilebilir; kapı bu kısıtı `temiz sinir ~+-25 deg` olarak
+   raporlar (25 adımlık taramanın çözünürlüğü).
 2. **Kenar kısaltma:** elevatörün iç kenarı 12 mm kısaltılır (`y=10` → `y=22`).
    Açıklığın %4'ü; bu yapılırsa **CAD artık SDF ile birebir olmaz** ve
    `dogrula.py` kapsam denetimi ölçü sapması verir — o yüzden ancak SDF de

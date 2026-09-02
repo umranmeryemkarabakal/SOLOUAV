@@ -246,6 +246,16 @@ zarfı, katı sağlığı, menteşe, duruşta girişim, tilt süpürmesi, yüzey
   bile 0,7 cm³ hacim yapar. Mutlak hacim eşiği bu yüzden büyük parçalarda
   ölçtüğü şeyi değil parçanın boyutunu yansıtır.
 
+### ⚠ Aşama 2 IDEMPOTENT DEĞİL
+
+`build_mechanism.py` **kendi çıktısının üzerine ikinci kez koşulamaz.** Zaten
+burnu tamamlanmış bir kumanda yüzeyine yeniden burun eklemeye çalışır ve
+`Null TopoDS_Shape object` ile çöker. Her zaman önce `build_tiltrotor_cad.py`
+koşup gövdeleri pristine hale getirin.
+
+Bu tuzağa düşmenin kolay yolu `git checkout -- cad/step/` ile "temiz duruma
+dönmek": depodaki STEP'ler Aşama 2'nin ÇIKTISIDIR, girdisi değil.
+
 ### Mekanizma kapısı
 
 ```bash
