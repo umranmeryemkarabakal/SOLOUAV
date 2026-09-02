@@ -277,3 +277,59 @@ ortalama film kalınlığına geçirilince (`FILM_TOL = 0,05 mm`) ortaya çıkt�
 hacmi küçük ama film 0,90 mm, yani lokalize gerçek bir saplanma. Aynı
 değişiklik, elevonların kanatla paylaştığı loft yüzeyinden gelen üç sahte
 uyarıyı da düşürdü (film 0,011 mm).
+
+---
+
+# Montajda karar verilecekler
+
+Mekanizma çalışmasından (1 Eylül 2026) çıkan ve **imalata başlamadan önce
+karara bağlanması gereken** maddeler. Ayrıntılı ölçümler ve denenip elenen
+yollar için `cad/MEKANIZMA_GUNLUGU.md`.
+
+### K1 — Elevatör mekanik durdurucu açısı
+Ölçüm temasın **+24°'de** başladığını söylüyor (+22° son tam temiz açı).
+Yukarıdaki eski not +26° diyor ve o açı 0,020 cm³ girişime izin veriyor.
+**Karar:** durdurucu +23°'ye mi çekilecek, yoksa +26°'de kalıp o teması
+kabul mü edilecek? Kontrol tarafı `model.sdf`'teki ±29,8° limitiyle
+çalışmaya devam eder; bu yalnızca fiziksel stop.
+
+### K2 — Kuyruk menteşe hattındaki 11 mm boşluk
+Elevatör↔tailplane ve rudder↔fin arasında 11,0 mm boşluk var (elevon tarafı
+0,2 mm ile doğru). CAD'de çözümün reçetesi günlükte yazılı ama uygulanmadı.
+**Karar:** (a) CAD'de düzeltilsin mi, yoksa (b) montajda dolgu/conta ile mi
+kapatılacak? (b) seçilirse menteşe hattı aerodinamik olarak sızdırır.
+
+### K3 — Winglet'lerin kanada bağlanması
+Winglet'ler kanatla tek gövdeye kaynatılmadı; tabanları kanat ucunun 5 mm
+içine oturur ama ayrı katı kalır (OCC'de birleştirme kararsız).
+**Karar:** montajda `Rigid Group` mu yapılacak, yapıştırma/lamine mi, yoksa
+CAD'de birleştirme yeniden mi denenecek?
+
+### K4 — Servo seçimi
+Kuyruk yüzeyleri 22 mm'lik standart servoyu **almıyor** (tailplane 9,9 mm,
+fin 16,5 mm). Tasarımda elevatör ve rudder servoları kuyruk çubuğuna
+gömüldü, rudder için boom altına küçük bir karina eklendi.
+**Karar:** bu düzen kabul mü, yoksa 6-9 mm'lik ince kanat servosu mu
+kullanılacak? Karina dış hat değişikliğidir.
+
+### K5 — Yatak seçimi
+Tilt eksenlerinde **MR105ZZ** (Ø5 × Ø10 × 4) varsayıldı; çatal yuvaları ve
+kızak mil uçları bu ölçüye göre. **Karar:** bu yatak temin edilecek mi,
+yoksa ölçü başka bir yatağa mı uyarlanacak?
+
+### K6 — Pervane dış palasının kalınlaştırılması
+`iris_prop_cw.dae` görsel mesh'i dış palada 0,2 mm'ye iniyordu; imal
+edilebilirlik için asgari kesit kalınlığı **1,2 mm**'ye çıkarıldı (pervane
+hacmi 4,61 → 7,57 cm³). Bu **sim geometrisinden bilinçli bir sapmadır**.
+**Karar:** 1,2 mm yeterli mi, malzemeye göre artırılacak mı?
+
+### K7 — Elevon asimetrisi
+Sağ ve sol elevon birbirinin aynası değil (açıklıkta 8,0 mm fark).
+**Karar:** ikisi farklı parça olarak mı üretilecek, yoksa CAD'de aynalanıp
+tek kalıba mı indirilecek? İkincisi `dogrula.py` kapsam denetiminde ölçü
+sapması verir.
+
+### K8 — Kuyruk çubuğu desteği
+Boom gövdeye yalnızca ~56 mm giriyordu; V-destek eklenerek konsol ~630 mm
+→ ~370 mm'ye indirildi. **Karar:** destek çubukları karbon boru mu, baskı
+parça mı? Kanat ve boom bağlantı göbekleri buna göre boyutlanmalı.
