@@ -206,6 +206,31 @@ doğrulandı.
   değişimi **15/59 → 3/59**. Sıra bağlayıcıdır: önce yumuşatma, sonra
   yeniden inşa — tersi durumda yumuşatma yeni elipsi katlanmış
   komşularıyla ortalayıp bozulmayı geri getiriyor.
+- **Kuyruk menteşe hattında 11 mm boşluk** (1 Eylül 2026, AÇIK). Ölçüm
+  (`BRepExtrema`, asgari mesafe): elevon↔kanat **0,17 / 0,56 mm** (doğru),
+  ama elevatör↔tailplane ve rudder↔fin **11,0 mm**. Sebep zinciri tam:
+  menteşe cebi 6 mm yarıçaplı yani **12 mm çaplı**, tailplane ise **12 mm**
+  kalın — silindir levhayı boydan boya kesiyor, firar şeridi gövdeden
+  kopuyor, kopan parça düşüyor ve gövde eksenden 16 mm geriye çekiliyor
+  (bbox x −780 → −749,2). Fin'de (20 mm) aynı mekanizma.
+
+  **Denenip elenen çözümler:**
+  1. Cep yarıçapını ana gövdenin yarım kalınlığıyla sınırlamak — kopmayı
+     çözüyor (tailplane x −780'e geri dönüyor, cepten 51 yerine 7,6 cm³
+     alınıyor) ama çakışmayı temizlemiyor: elevatör∩tailplane **4,69 cm³**,
+     rudder∩fin **3,32 cm³**. Parçalar iç içe kalıyor, yani dönemezler —
+     11 mm boşluktan daha kötü, geri alındı.
+  2. Ana gövdeyi menteşe düzleminin arkasından kırpmak — sınırsız kutuyla
+     kanadı yıkıyor (29465 → 18030 cm³). Kutu kumanda yüzeyinin açıklık
+     aralığıyla sınırlandığında ise Aşama 1 segfault verdiği için sonuç
+     doğrulanamadı.
+
+  **Reçete (bir sonraki oturum için):** iki kısıt AYNI ANDA sağlanmalı —
+  cep yarıçapı ana gövdenin yarım kalınlığından küçük (kopmasın) VE burun
+  yarıçapı + kaçıklık payından büyük (çakışma kalmasın). Tailplane'de yarım
+  kalınlık 6 mm olduğundan: **burun 4,5 mm, cep 5,5 mm, artı açıklıkla
+  sınırlı arka kırpma.** Her adımdan sonra `dogrula_mekanizma.py`.
+
 - **Elevonlar birbirinin aynası değil** (1 Eylül 2026, AÇIK). İki elevonun
   pozu SDF'ten **bağımsız** alınıyor (`ELEVON` tablosu), aynalanarak
   üretilmiyor. Ölçüm: sağ elevon açıklıkta **8,0 mm**, veterde 0,9 mm kaymış;
