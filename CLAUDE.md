@@ -14,13 +14,59 @@ keşfetmeye gerek yok:
 | MATLAB model ve kontrol tasarımı | `indi_attitude_controller.m`, `sf_wls_alloc.m`, `tiltrotor_params.m`, `tiltrotor_plant_deriv.m`, `altitude_loop.m`, `init_ctrl_state.m` |
 | SITL deneyleri ve analiz | `sitl_experiments/` (`run_*.m` koşumları + `*.py` analiz) |
 | Araç modeli | `tiltrotor_tailplane_model.sdf` (PX4'teki `models/tiltrotor_indi/model.sdf` ile birebir aynı) |
-| CAD | `cad/` — SDF'ten üretilmiş STEP katıları, `cad/README.md` + `cad/MONTAJ.md` |
+| CAD | `cad/` — SDF'ten üretilmiş STEP katıları; `README.md`, `MONTAJ.md`, **`MEKANIZMA_GUNLUGU.md`**, üreticiler `build_tiltrotor_cad.py` + `build_mechanism.py`, kapılar `dogrula*.py` |
 | PX4 airframe | `px4_airframes/` — SITL (4023), gerçek kart (14002), **HITL (14003)** + `README.md`; PX4 ağacındaki kopyaların yedeği |
 | Gazebo tarafı | `gz_model/` — model.sdf (depo kökündekine **hardlink**) + model.config + `worlds/windy_tiltrotor.sdf`; açıklama `gz_model/README.md` |
 | Mevcut yazılı kayıt | `RUNBOOK.md` (78 KB), `WLS_LOCKUP_INVESTIGATION_REPORT.md` (534 KB) |
 
 Son iki dosya, kodun kendisinden çıkarılamayacak "neden böyle yapıldı"
 bilgisinin ana kaynağı. Tasarım gerekçesi aranıyorsa önce oraya bakın.
+
+## CAD mekanizma aşaması (1 Eylül 2026) — ÖNCE BUNU OKUYUN
+
+CAD artık iki aşamalı üretiliyor ve **sıra bağlayıcıdır**:
+
+```bash
+$CQ/python cad/build_tiltrotor_cad.py    # 1) aerodinamik gövdeler — MESH İSTER
+$CQ/python cad/build_mechanism.py        # 2) mekanizma + montaj — mesh istemez
+$CQ/python cad/dogrula_mekanizma.py      # kapı: 61 geçti / 2 uyarı / 0 hata olmalı
+```
+
+| Nerede ne var |
+|---|
+| `cad/MEKANIZMA_GUNLUGU.md` — **çalışma günlüğü**: yapılanların ölçümleri, 5 açık madde, ⛔ denenip elenen 11 yol, araç tuzakları |
+| `cad/MONTAJ.md` sonu — **montajda karar verilecek 8 madde** (K1…K8) |
+| `cad/README.md` "Başka bir makinede devam etme" — kurulum adımları |
+| `cad/step/tiltrotor_assembly.step` — 74 parça, mekanizma dahil tek dosya |
+
+### Bu makineye özgü, depoda OLMAYAN bağımlılıklar
+
+Depo tek başına yetmez; üçü de bilerek dışarıda (kurulum: `cad/README.md`):
+cadquery venv, `.dae` mesh dizini (`VTOL_MESH_DIR`), Fusion MCP köprüsü.
+`.mcp.json` **git'te izlenmez** — mutlak yol içerir, her makinede yeniden
+yazılmalı ve Claude Code yeniden başlatılmalıdır.
+
+### Sessizce yanlış sonuç üreten dört tuzak
+
+1. **Aşama 2 idempotent değil.** `build_mechanism.py` kendi çıktısının
+   üzerine ikinci kez koşulamaz (`Null TopoDS_Shape` ile çöker). Depodaki
+   STEP'ler Aşama 2'nin **çıktısıdır**; `git checkout -- cad/step/` yapıp
+   üstüne koşmak tam bu hatayı yaptırır.
+2. **`build_tiltrotor_cad.py` aralıklı segfault veriyor.** Sonrasında
+   gövdeler eksik üretilir ve Aşama 2 onların üzerine koşarsa ölçümler
+   yanıltıcı çıkar. Her koşuda "yazıldı" satırını görün.
+3. **Fusion'ın boolean ve `pointContainment` sorguları `wing` gövdesinde
+   güvenilmez** (60 mm küp %100 içeride derken 80 mm küp %0,2 diyor).
+   Kanadı içeren her kontrol `dogrula.py` / `dogrula_mekanizma.py` ile.
+4. **Mesh doğruluğu:** yeniden üretimde `winglet_left` 417,3 cm³ ve
+   `elevon_left` 125,3 cm³ çıkmalı. Tutmuyorsa mesh sürümü farklıdır.
+
+### En büyük açık madde
+
+Kuyruk menteşe hattında **11 mm boşluk** (elevon tarafı 0,2 mm ile doğru).
+Kök neden ve çözüm reçetesi günlükte yazılı — sıfırdan teşhis etmeyin.
+Geometrik "oturuyor mu" sorusunun doğru ölçütü `BRepExtrema` ile **iki katı
+arasındaki asgari mesafedir**; hacim ya da yüz alanı yanıltır.
 
 ## Dokümantasyon boru hattı
 
