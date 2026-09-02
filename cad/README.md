@@ -86,6 +86,61 @@ ayrıştırıcısını ödünç alır (`dogrula_fusion_parser.py` ile aynı tekn
 Kaynak model: `Tools/simulation/gz/models/tiltrotor_indi/model.sdf`
 (depodaki `tiltrotor_tailplane_model.sdf` ile birebir aynı).
 
+## Başka bir makinede devam etme
+
+Depo **kendi başına yetmez**: üretim zinciri üç şeye daha ihtiyaç duyar ve
+üçü de bilerek depo dışında tutulur (bkz. CLAUDE.md). Yeni makinede sırayla:
+
+**1. cadquery (depo dışında ayrı venv)**
+```bash
+python -m venv ~/cadquery-env
+~/cadquery-env/bin/pip install cadquery
+```
+Sistem Python'una kurmayın; bu depo numpy/tensorflow çakışması olan
+ortamlarda çalışıyor.
+
+**2. Mesh'ler (depo dışında)**
+```bash
+mkdir -p ~/vtol_meshes && cd ~/vtol_meshes
+BASE=https://raw.githubusercontent.com/PX4/PX4-gazebo-models/main/models/standard_vtol/meshes
+for M in x8_wing x8_elevon_left x8_elevon_right iris_prop_cw iris_prop_ccw; do
+  curl -sL -o "$M.dae" "$BASE/$M.dae"
+done
+export VTOL_MESH_DIR=~/vtol_meshes
+```
+Doğruluk kontrolü: yeniden üretilen `winglet_left` **417,3 cm³**,
+`elevon_left` **125,3 cm³** çıkmalı. Tutmuyorsa mesh sürümü farklıdır.
+
+**3. Fusion MCP köprüsü (isteğe bağlı, yalnız Claude'un Fusion'ı sürmesi için)**
+```bash
+git clone https://github.com/ndoo/fusion360-mcp-bridge.git ~/fusion360-mcp-bridge
+python -m pip install --user "mcp<2" httpx        # ⚠ mcp<2 ŞART
+python -c "import secrets; print(secrets.token_hex(32))" > ~/.fusion-mcp-secret
+# fusion-addin/FusionMCPBridge -> Fusion AddIns klasörüne kopyala
+```
+⚠ **`mcp>=1.0.0` kurmayın.** pip en son major'ı (2.x) çeker, orada `FastMCP`
+→ `MCPServer` olarak yeniden adlandırılmış ve köprünün `server.py`'si v1 API
+kullanıyor; sonuç `ModuleNotFoundError` ve Claude tarafında sessiz
+`CONNECTION_CLOSED`.
+
+Fusion'da eklentiyi açmak: **Shift+S** → *Eklentiler* sekmesi →
+`FusionMCPBridge` → *Çalıştır*. Sağlık kontrolü:
+```bash
+curl -H "Authorization: Bearer $(cat ~/.fusion-mcp-secret)" http://127.0.0.1:7654/health
+```
+
+`.mcp.json` **depoda izlenmez** — içinde makineye özgü mutlak yollar vardır,
+her makinede yeniden yazılmalıdır. MCP sunucuları yalnızca oturum
+açılışında yüklenir; dosyayı yazdıktan sonra Claude Code'u yeniden başlatın.
+
+**4. Fusion çizimi** Autodesk bulutundadır (Fusion Team). Aynı hesapla
+oturum açınca doküman gelir; depoda `.f3d` tutulmaz — eklemler zaten
+`fusion_02_joints.py` ile `model.sdf`'ten yeniden kurulabilir.
+
+**Tek dosyada tüm model:** `cad/step/tiltrotor_assembly.step` (74 parça,
+mekanizma dahil). Aşama 2 tarafından yazılır; Aşama 1'in yazdığı sürümde
+yalnızca 23 gövde parçası vardır.
+
 ## Fusion 360'a aktarma
 
 ```

@@ -529,6 +529,26 @@ def main():
         cq.exporters.export(cq.Workplane(obj=shp), os.path.join(OUT, name + '.step'))
     print('\nyazildi:', OUT, '({} parca)'.format(len(parts)))
 
+    # TAM montaj dosyası. Aşama 1 de bir tiltrotor_assembly.step yazıyor ama
+    # onda yalnızca 23 gövde parçası var: mekanizma parçaları ve menteşe
+    # boşluğu açılmış kanat/tailplane/fin YOK. Onu açan biri mekanizmasız
+    # eski modeli görüyordu. Aşama 2 son aşama olduğu için montajı burada,
+    # klasördeki TÜM parçalardan yeniden yazıyoruz.
+    asm = cq.Assembly(name='tiltrotor_indi_mekanizmali')
+    n_asm = 0
+    for f in sorted(os.listdir(OUT)):
+        if not f.endswith('.step'):
+            continue
+        try:
+            asm.add(cq.Workplane(obj=cq.importers.importStep(
+                os.path.join(OUT, f)).val()), name=f[:-5])
+            n_asm += 1
+        except Exception as e:                                 # noqa: BLE001
+            print('  montaja eklenemedi:', f, str(e)[:60])
+    hedef = os.path.join(os.path.dirname(OUT), 'tiltrotor_assembly.step')
+    asm.save(hedef, 'STEP')
+    print('montaj yazildi:', hedef, '({} parca)'.format(n_asm))
+
 
 if __name__ == '__main__':
     main()
