@@ -326,15 +326,26 @@ zarfı, katı sağlığı, menteşe, duruşta girişim, tilt süpürmesi, yüzey
   bile 0,7 cm³ hacim yapar. Mutlak hacim eşiği bu yüzden büyük parçalarda
   ölçtüğü şeyi değil parçanın boyutunu yansıtır.
 
-### ⚠ Aşama 2 IDEMPOTENT DEĞİL
+### Aşama 2 artık idempotent (3 Eylül 2026'da düzeltildi)
 
-`build_mechanism.py` **kendi çıktısının üzerine ikinci kez koşulamaz.** Zaten
-burnu tamamlanmış bir kumanda yüzeyine yeniden burun eklemeye çalışır ve
-`Null TopoDS_Shape object` ile çöker. Her zaman önce `build_tiltrotor_cad.py`
-koşup gövdeleri pristine hale getirin.
+`build_mechanism.py` istenildiği kadar tekrar koşulabilir. İki ardışık koşum
+61 parçanın hacim + sınır kutusu tablosunu **birebir aynı** üretir ve kapı
+ikisinde de `61 geçti, 2 uyarı, 0 HATA` verir.
 
-Bu tuzağa düşmenin kolay yolu `git checkout -- cad/step/` ile "temiz duruma
-dönmek": depodaki STEP'ler Aşama 2'nin ÇIKTISIDIR, girdisi değil.
+**Eskiden neden çökerdi** (bilgi kaybolmasın diye duruyor): betiğin girdisi
+kendi çıktısıydı — `load_part()` de export da `step/parts/` dizinine bakardı.
+İkinci koşuda betik, burnu zaten silindire tıraşlanmış bir kumanda yüzeyine
+yeniden burun eklemeye çalışır ve `Null TopoDS_Shape object` ile çökerdi.
+`git checkout -- cad/step/` ile "temiz duruma dönmek" de kurtarmazdı, çünkü
+depodaki STEP'ler Aşama 2'nin ÇIKTISIDIR.
+
+**Düzeltme:** girdi çıktıdan ayrıldı. Aşama 2'nin üzerine yazdığı 10 gövde
+(`build_mechanism.py` → `TURETILEN`) artık `step/parts_pristine/` altındaki
+dokunulmamış kopyadan okunur; oraya Aşama 1 yazar. `step/parts/` yalnızca
+çıktıdır. Kopya eksikse betik ne yapılacağını söyleyerek durur.
+
+`parts_pristine/` depoda izlenir (4,2 MB): mesh'siz bir makinede Aşama 2'nin
+koşabilmesi buna bağlı.
 
 ### Mekanizma kapısı
 

@@ -23,6 +23,12 @@ MESH_DIR = os.environ.get(
     os.path.expanduser('~/PX4-Autopilot/Tools/simulation/gz/models/standard_vtol/meshes'))
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'step')
 
+# Asama 2'nin uzerine yazdigi govdelerin listesi ORADA tanimlidir; burada
+# ikinci bir kopyasini tutmuyoruz (bu deponun ayni sayiyi iki yerde tutmaktan
+# gordugu zarar icin bkz. cad/README.md). Asama 1'in isi, o govdelerin
+# dokunulmamis halini Asama 2'nin girdi dizinine de yazmak.
+from build_mechanism import TURETILEN, SRC as PRISTINE_DIR
+
 # --------------------------------------------------------------------------
 # SDF'ten okunan ölçüler (model.sdf, 2026-08-02 sürümü)
 # --------------------------------------------------------------------------
@@ -517,6 +523,7 @@ def build_prop(mesh_name, center):
 # --------------------------------------------------------------------------
 def main():
     os.makedirs(os.path.join(OUT, 'parts'), exist_ok=True)
+    os.makedirs(PRISTINE_DIR, exist_ok=True)
     parts = {}
 
     print('kanat + winglet ...', flush=True)
@@ -550,6 +557,11 @@ def main():
         print(f'  {name:22s} hacim={vol:9.2f} cm^3  '
               f'x[{bb.xmin:8.1f},{bb.xmax:8.1f}] y[{bb.ymin:8.1f},{bb.ymax:8.1f}] z[{bb.zmin:7.1f},{bb.zmax:7.1f}]')
         cq.exporters.export(cq.Workplane(obj=shp), os.path.join(OUT, 'parts', name + '.step'))
+        if name in TURETILEN:
+            # Asama 2 bu govdenin uzerine yazacak; girdisi olarak kullanacagi
+            # dokunulmamis kopya burada ayrilir.
+            cq.exporters.export(cq.Workplane(obj=shp),
+                                os.path.join(PRISTINE_DIR, name + '.step'))
         asm.add(cq.Workplane(obj=shp), name=name)
 
     asm.save(os.path.join(OUT, 'tiltrotor_assembly.step'), 'STEP')

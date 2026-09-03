@@ -165,14 +165,48 @@ depodaki şey aynı değil.
 
 ---
 
+## 3.5 İdempotentlik düzeltilirken çıkan iki bulgu (3 Eylül 2026)
+
+**Elenen cep yarıçapı kodda canlı dal olarak kalmış.** `hinge_relief`
+`r_burun > 0` iken cebi `r_burun + CLEAR` ile açıyordu — yani yukarıdaki
+elenenler tablosunda "kopmayı çözüyor ama çakışma kalıyor" diye kayıtlı
+yolun ta kendisi. Depodaki STEP'ler bunu maskeliyordu: onlar **süpürme**
+yarıçapıyla açılmış ceplerin üstüne küçük cebin eklenmesiyle birikmişti ve
+Aşama 2 ikinci kez koşulamadığı için kimse tek geçişin ne ürettiğini
+görmemişti. Temiz tek geçişin ölçümü:
+
+| | süpürme yarıçapı (kabul edilen) | yalnız burun yarıçapı (elenen) |
+|---|---|---|
+| tailplane cebi | R = 16,00 mm | R = 6,00 mm |
+| elevatör ∩ tailplane | yok | 2,586 cm³ (−12,4°'de) |
+| rudder ∩ fin | yok | 2,792 cm³ (**0°'de**) |
+| elevon ∩ wing | yok | 0,115 / 0,470 cm³ |
+| kapı | 61 geçti, 2 uyarı | 57 geçti, **6 uyarı** |
+
+`R = max(rmax, r_burun) + CLEAR` yapıldı: süpürme belirler, burun yalnız alt
+sınırdır. Bu haliyle tek geçiş depodaki 61 parçanın **hepsini** dosya
+düzeyinde yeniden üretiyor (tolerans 0,01 cm³).
+
+**`servo_rudder` iki yerde üretiliyor.** `build_actuation('rudder', ...)`
+(satır ~425, `parts['servo_' + tag]`) bir `servo_rudder` yazıyor, ardından
+`build_tail_actuation` (satır ~475) üzerine yazıyor. İlki sessizce
+atılıyor. Geometri sonucu değiştirmiyor — dokunulmadı, çünkü ayırmak
+montaja 75. parçayı ekler ve kapı sayısını değiştirir. Karar gerektirir.
+
+---
+
 ## 4. Araç tuzakları
 
-- **Aşama 2 idempotent değil.** `build_mechanism.py` kendi çıktısının
-  üzerine ikinci kez koşulamaz; zaten burnu tamamlanmış yüzeye yeniden burun
-  eklemeye çalışıp `Null TopoDS_Shape` ile çöker. `git checkout -- cad/step/`
-  ile "temiz duruma dönmek" tam bu tuzağa düşürür: depodaki STEP'ler Aşama
-  2'nin **çıktısıdır**, girdisi değil. Bu oturumda kuyruk düzeltmesinin
-  birkaç denemesi bu yüzden yanlış yere teşhis edildi.
+- **Aşama 2 idempotent değildi — 3 Eylül 2026'da düzeltildi.**
+  `build_mechanism.py` kendi çıktısının üzerine ikinci kez koşulamıyordu;
+  zaten burnu tamamlanmış yüzeye yeniden burun eklemeye çalışıp
+  `Null TopoDS_Shape` ile çöküyordu. `git checkout -- cad/step/` ile "temiz
+  duruma dönmek" tam bu tuzağa düşürüyordu: depodaki STEP'ler Aşama 2'nin
+  **çıktısıdır**, girdisi değil. Bu oturumda kuyruk düzeltmesinin birkaç
+  denemesi bu yüzden yanlış yere teşhis edildi.
+  Kök neden girdi ile çıktının aynı dizin olmasıydı; girdi
+  `step/parts_pristine/` altına ayrıldı (bkz. `TURETILEN`). Artık iki
+  ardışık koşum birebir aynı 61 parçayı üretiyor.
 - **`build_tiltrotor_cad.py` aralıklı segfault veriyor** (bu oturumda iki
   kez). Art arda OCC koşularının bellek baskısı olabilir. Segfault'tan sonra
   gövde parçaları eksik üretilir ve Aşama 2 onların üzerine koşarsa ölçümler

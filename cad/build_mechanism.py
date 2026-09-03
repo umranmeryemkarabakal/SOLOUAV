@@ -2,8 +2,13 @@
 """Mekanizma parçalarını üretir: tilt grubu, iniş takımı bağlantısı, kumanda
 yüzeyi menteşe/tahrik donanımı, kuyruk çubuğu desteği.
 
-Kaynak  : model.sdf (menteşe eksenleri) + cad/step/parts/*.step (ana gövdeler)
+Kaynak  : model.sdf (menteşe eksenleri)
+          + cad/step/parts_pristine/*.step  (bu betiğin değiştirdiği gövdeler)
+          + cad/step/parts/*.step           (yalnız ölçülen gövdeler: çubuk, bacaklar)
 Çıktı   : cad/step/parts/*.step  (yeni parçalar + menteşe boşluğu açılmış ana gövdeler)
+
+Girdi ve çıktı AYRI dizinlerdedir; betik bu yüzden istenildiği kadar tekrar
+koşulabilir (bkz. TURETILEN).
 
 NEDEN AYRI BİR BETİK: build_tiltrotor_cad.py aerodinamik gövdeleri `.dae`
 mesh'lerinden loft eder ve mesh dizini olmadan koşamaz. Buradaki parçaların
@@ -29,6 +34,25 @@ from cadquery import Solid, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'step', 'parts')
+SRC = os.path.join(HERE, 'step', 'parts_pristine')
+
+# Bu betigin UZERINE YAZDIGI Asama 1 govdeleri.
+#
+# NEDEN AYRI BIR DIZIN: cikti da OUT'a gittigi icin bu govdeler OUT'tan
+# OKUNAMAZ -- ikinci kosuda betik kendi ciktisini girdi sanardi ve zaten
+# burnu silindire trasanmis bir yuzeye yeniden burun ekleyip
+# `Null TopoDS_Shape` ile coker (bkz. cad/MEKANIZMA_GUNLUGU.md). Girdi
+# dokunulmamis haliyle SRC'de durur; oraya Asama 1 yazar. Boylece Asama 2
+# istenildigi kadar tekrar kosulabilir ve `git checkout -- cad/step/` de
+# artik tuzak degildir.
+#
+# Liste tek kaynaktir: Asama 1 de bunu buradan okur, kendi kopyasini tutmaz.
+TURETILEN = frozenset({
+    'wing', 'tailplane', 'vertical_stabiliser',   # mentese boslugu kesilir
+    'elevon_left', 'elevon_right',                # burnu silindire trasanir
+    'elevator_left', 'elevator_right', 'rudder',
+    'pylon_left', 'pylon_right',                  # motor supurme boslugu kesilir
+})
 SDF_CANDIDATES = [
     os.environ.get('TILTROTOR_SDF', ''),
     os.path.join(os.path.dirname(HERE), 'tiltrotor_tailplane_model.sdf'),
@@ -171,9 +195,26 @@ def lower_surface_z(shape, x, y, half=14.0):
 
 
 def load_part(name):
-    p = os.path.join(OUT, name + '.step')
-    if not os.path.isfile(p):
-        raise SystemExit('parca yok: ' + p)
+    """Asama 1 govdesini oku.
+
+    Bu betigin DEGISTIRDIGI govdeler (`TURETILEN`) daima dokunulmamis
+    kopyadan (`SRC`) okunur, `OUT`tan degil: `OUT` bu betigin kendi
+    ciktisidir ve oradan okumak betigi ikinci kosuda kendi sonucunun
+    uzerine surer. Degistirilmeyen govdeler `OUT`tan okunur.
+    """
+    if name in TURETILEN:
+        p = os.path.join(SRC, name + '.step')
+        if not os.path.isfile(p):
+            raise SystemExit(
+                'dokunulmamis kopya yok: {}\n'
+                'Asama 2 bu govdeyi degistirdigi icin girdisini {}/ altindan\n'
+                'okur, step/parts/ altindan degil. Once Asama 1 kosun\n'
+                '(build_tiltrotor_cad.py) -- kopyalari o yazar.'.format(
+                    p, os.path.basename(SRC)))
+    else:
+        p = os.path.join(OUT, name + '.step')
+        if not os.path.isfile(p):
+            raise SystemExit('parca yok: ' + p)
     return cq.importers.importStep(p).val()
 
 
@@ -328,25 +369,34 @@ def yari_uzay(A, D, aft, t0, t1):
 
 
 def hinge_relief(surf, parent, A, D, lim_deg, r_burun=0.0):
-    """Burun yarıçapı + pay kadar silindirik boşluk.
+    """Menteşe boşluğu: yüzeyin SAPMA ARALIĞI boyunca gövdeye giren
+    malzemesinin azami yarıçapı + pay.
 
-    Burun silindire tıraşlandıysa (`shape_hinge_nose`) boşluk küçük ve
-    düzgün olur. Tıraşlanmadıysa eski davranışa düşer: yüzeyin tüm sapma
-    aralığında gövdeye giren malzemesinin azami yarıçapı ölçülür."""
-    if r_burun > 0.0:
-        R = r_burun + CLEAR
-    else:
-        rmax = 0.0
-        for deg in (-lim_deg, -lim_deg / 2, 0.0, lim_deg / 2, lim_deg):
-            try:
-                hit = parent.intersect(rot_about(surf, A, D, deg))
-            except Exception:                                  # noqa: BLE001
-                continue
-            if hit.Volume() > 1e-3:
-                rmax = max(rmax, axis_radius(hit, A, D))
-        if rmax <= 0.0:
-            return None, 0.0
-        R = rmax + CLEAR
+    ⛔ CEBİ YALNIZ BURUN YARIÇAPINA GÖRE AÇMA — DENENDİ VE ELENDİ.
+    Burun `shape_hinge_nose` ile silindire tıraşlansa bile cep `r_burun +
+    CLEAR` olamaz: kopmayı çözer ama sapma boyunca çakışma bırakır. Ölçüm
+    (temiz tek geçiş, 3 Eylül 2026): elevatör∩tailplane 2,59 cm³,
+    rudder∩fin 2,79 cm³ ve rudder daha **0°'de** gövdeye giriyor; kapı
+    57 geçti / 6 uyarı veriyor. Süpürme yarıçapıyla 61 geçti / 2 uyarı.
+    Bu yol günlükte zaten elenmişti (bkz. cad/MEKANIZMA_GUNLUGU.md) ama
+    kodda canlı dal olarak kalmıştı — Aşama 2 ikinci kez koşulamadığı için
+    ürettiği geometri kimsenin gözüne girmiyordu.
+
+    Burun yarıçapı yalnızca ALT SINIR olarak kullanılır: tıraşlanmış burun
+    cebe sığmalı, ama cebi süpürme belirler.
+    """
+    rmax = 0.0
+    for deg in (-lim_deg, -lim_deg / 2, 0.0, lim_deg / 2, lim_deg):
+        try:
+            hit = parent.intersect(rot_about(surf, A, D, deg))
+        except Exception:                                      # noqa: BLE001
+            continue
+        if hit.Volume() > 1e-3:
+            rmax = max(rmax, axis_radius(hit, A, D))
+    R = max(rmax, r_burun)
+    if R <= 0.0:
+        return None, 0.0
+    R += CLEAR
     t0, t1 = axial_span(surf, A, D)
     return cy(along(A, D, t0 - 10), along(A, D, t1 + 10), R), R
 
